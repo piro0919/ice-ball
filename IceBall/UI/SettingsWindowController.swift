@@ -10,10 +10,12 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let permissions = PermissionState()
     private let previewMetrics = PreviewMetrics()
     private var window: NSWindow?
+    private let checkForUpdates: () -> Void
 
-    init(settings: SettingsStore, overlay: OverlayController) {
+    init(settings: SettingsStore, overlay: OverlayController, checkForUpdates: @escaping () -> Void) {
         self.settings = settings
         self.overlay = overlay
+        self.checkForUpdates = checkForUpdates
         super.init()
         permissions.onGranted = { [weak overlay] in overlay?.refreshRegions(fullScan: true) }
     }
@@ -28,7 +30,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        let view = SettingsView(settings: settings, permissions: permissions, previewMetrics: previewMetrics)
+        let view = SettingsView(
+            settings: settings, permissions: permissions, previewMetrics: previewMetrics,
+            checkForUpdates: checkForUpdates)
         let window = NSWindow(contentViewController: NSHostingController(rootView: view))
         window.title = L.settingsTitle
         window.styleMask = [.titled, .closable, .miniaturizable]

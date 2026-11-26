@@ -25,8 +25,8 @@ final class OverlayController {
     private var missingMenuBarTask: Task<Void, Never>?
     private var isRunning = false
 
-    /// Whether the menu bar currently draws with a dark appearance. Set by the app delegate
-    /// from the effective appearance of its own status item, which follows the menu bar.
+    /// Whether the system appearance is dark. Set by the app delegate; used for the fill only
+    /// when the desktop picture under the bar is not available.
     var menuBarIsDark = true {
         didSet { if menuBarIsDark != oldValue { layout() } }
     }

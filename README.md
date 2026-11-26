@@ -16,7 +16,7 @@ brew install --cask piro0919/tap/ice-ball
 
 The app is signed with a personal certificate, not by a registered Apple developer, so macOS blocks the first launch. Open System Settings › Privacy & Security and click **Open Anyway**; after that it opens normally.
 
-Ice Ball checks for a new version once at launch (Sparkle, from this repository's GitHub Releases) and asks before installing it. **Check for Updates…** in its menu checks on demand.
+Ice Ball checks for a new version once at launch (Sparkle, from this repository's GitHub Releases) and asks before installing it. **Check for Updates…** in the settings window checks on demand.
 
 ## Build and run
 
@@ -41,7 +41,7 @@ Tests (geometry, settings persistence, offscreen rendering; snapshots go to `bui
 ./test.sh
 ```
 
-The app has no Dock icon. Open the settings from its menu bar icon, or by launching the app again.
+The app has no Dock icon and no menu bar icon. Open the settings by launching the app again from Finder or Spotlight; the settings window also has "Check for Updates…" and "Quit Ice Ball".
 
 ## Permissions
 
@@ -64,7 +64,7 @@ Even then, an Accessibility grant made while an ad-hoc build was running stays t
 
 ```
 IceBall/
-  App/        main.swift, AppDelegate — status item, lifecycle, menu bar appearance/visibility signals; Updater (Sparkle)
+  App/        main.swift, AppDelegate — lifecycle, reopening into the settings window, light/dark fallback; Updater (Sparkle)
   Settings/   AppearanceConfiguration (Codable values), SettingsStore (@Observable, UserDefaults, login item)
   MenuBar/    SystemMenuBar (window list facts), MenuBarRegionReader (Accessibility), MenuBarRegions (pure math)
   Overlay/    OverlayController (events → layout), OverlayPanel, OverlayView (drawing),
@@ -131,7 +131,7 @@ There are no timers in Default and Rounded. Split's 5-second timer exists becaus
   ```
 - With the background shown, the fill sits above the menu titles, so its opacity is capped at 35 %.
 - Desktop picture from the file: dynamic, shuffle and Aerial wallpapers show only their first frame. Files in another app's container cannot be read; Screen Recording is then needed.
-- Menu text color follows the desktop picture, not the overlay. The fill picks the light or dark color from the picture's brightness under the bar; without the picture (no Screen Recording and an unreadable file) it falls back to the status item's appearance, which does not follow the picture.
+- Menu text color follows the desktop picture, not the overlay. The fill picks the light or dark color from the picture's brightness under the bar; without the picture (no Screen Recording and an unreadable file) it falls back to the system's light or dark setting, which does not follow the picture.
 - Status items are taken as the contiguous run from the right edge (gaps up to 16 pt), to skip items that Accessibility reports but macOS does not draw.
 - Status item frames are reported for the active display only and are applied to the others from the right edge.
 - Status items that macOS hides behind the notch are ignored.

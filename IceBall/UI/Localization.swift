@@ -12,13 +12,10 @@ nonisolated enum L {
         isJapanese ? ja : en
     }
 
-    // Status item menu
+    // Settings window
     static var enableAppearance: String { t("外観の変更を有効にする", "Change the Menu Bar's Look") }
-    static var settings: String { t("設定…", "Settings…") }
     static var checkForUpdates: String { t("アップデートを確認…", "Check for Updates…") }
     static var quit: String { t("Ice Ball を終了", "Quit Ice Ball") }
-
-    // Settings window
     static var settingsTitle: String { t("Ice Ball 設定", "Ice Ball Settings") }
     static var launchAtLogin: String { t("ログイン時に起動", "Open at Login") }
     static var loginItemNeedsApproval: String {

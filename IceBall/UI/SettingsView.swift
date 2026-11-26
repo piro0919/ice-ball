@@ -5,6 +5,8 @@ struct SettingsView: View {
     @Bindable var settings: SettingsStore
     let permissions: PermissionState
     let previewMetrics: PreviewMetrics
+    /// Sparkle lives in the app target; the view only asks for the check.
+    let checkForUpdates: () -> Void
 
     var body: some View {
         Form {
@@ -98,8 +100,10 @@ struct SettingsView: View {
 
             Section {
                 HStack {
+                    Button(L.checkForUpdates, action: checkForUpdates)
                     Spacer()
                     Button(L.restoreDefaults) { settings.resetToDefaults() }
+                    Button(L.quit) { NSApp.terminate(nil) }
                 }
             }
         }
