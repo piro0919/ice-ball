@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Builds with swiftc alone and runs the dependency-free checks (geometry, settings, offscreen drawing).
+  ci:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      # build.sh fetches Sparkle into Vendor/ when it is missing; keep it between runs.
+      - uses: actions/cache@v4
+        with:
+          path: Vendor
+          key: ${{ runner.os }}-vendor-${{ hashFiles('build.sh') }}
+      # The rules are in .swift-format: four-space indents and 120 columns.
+      - run: swift format lint --strict -r IceBall Tests
+      - run: ./build.sh
+      - run: ./test.sh
