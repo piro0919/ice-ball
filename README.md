@@ -142,7 +142,7 @@ There are no timers in Default and Rounded. Split's 5-second timer exists becaus
 
 ## Known limitations
 
-- **"Show menu bar background" detection is unverified.** The global default `SLSMenuBarUseBlurredAppearance` (1 on the development machine, whose menu bar showed a solid background) is read as that switch. The mapping was not checked by toggling the switch. If it is wrong, override it:
+- **"Show menu bar background" detection is only partly checked.** The global default `SLSMenuBarUseBlurredAppearance` is read as that switch. Toggling the switch in System Settings on macOS 27.2.1 removed the key when turned off and wrote 1 when turned back on, so the mapping holds. With the switch off, though, the system still drew the menu bar as solid dark gray (32, 32, 32) on the development machine, with Claude or Finder in front and with other windows hidden, so how the overlay looks over a transparent bar remains unchecked. If the detection is wrong, override it:
   ```bash
   defaults write io.kkweb.IceBall PlacementOverride below   # or: above; delete the key to go back to detection
   ```
@@ -179,7 +179,7 @@ Checked:
 - Launch and a second copy: `open` on the built app showed the settings window (window list, layer 0). Opening a copy from another folder left one process; with the window closed beforehand, the running instance showed it again.
 - Switching desktops: with a second desktop added on the built-in display, Control-→ and Control-← kept the overlay in place on both desktops (snapshots of each; the second desktop was removed afterwards).
 - Shape movement after an app switch, from screen recordings of the built-in display (Split, background shown): Calculator → Claude moved the left shape's end from 648 to 888 px over about 0.2 s, fast at first and slowing to a stop; Claude → Calculator moved it back the same way. Before the change, Claude → Calculator showed one full-width shape for about 0.3 s first (seen with 0.1.1 too), from the empty measurement described under "Regions"; after it, no such frame.
-- "Color from Desktop Picture", with the background shown and a brown wood desktop picture: the fill at a sample point was (100, 98, 95) with the switch on and (110, 110, 110) with it off; the settings window showed the switch at the top of Background with the two colors dimmed. With a transparent menu bar it was not checked (this machine has the background turned on).
+- "Color from Desktop Picture", with the background shown and a brown wood desktop picture: the fill at a sample point was (100, 98, 95) with the switch on and (110, 110, 110) with it off; the settings window showed the switch at the top of Background with the two colors dimmed. With a transparent menu bar it was not checked: turning "Show menu bar background" off on this machine still left a solid system bar (see Known limitations).
 - Full screen and the space switch it causes: putting a Finder window into full screen on the built-in display hid only that display's overlay (the Sidecar one stayed), and leaving full screen showed it again. Checked from the window list's on-screen flags.
 
 Not checked:
