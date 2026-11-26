@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.1]
 
 - Opening the app shows its settings window; at login it starts with the window closed
 - Only one instance runs: opening a second copy brings up the running one's settings and quits
