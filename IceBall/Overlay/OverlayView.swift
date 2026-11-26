@@ -10,6 +10,8 @@ struct OverlayDrawModel: Equatable {
     var placement: OverlayPlacement
     /// The desktop picture under `bar`, needed only for `.aboveMenuBar`.
     var wallpaper: CGImage?
+    /// The fill taken from the desktop picture; nil uses the configured light or dark color.
+    var desktopFill: RGBAColor? = nil
 }
 
 final class OverlayView: NSView {
@@ -110,7 +112,8 @@ final class OverlayView: NSView {
         }
 
         let opacity = min(config.backgroundOpacity, model.placement.maximumFillOpacity)
-        context.setFillColor(config.background(isDark: model.isDark).cgColor(multiplyingAlphaBy: opacity))
+        context.setFillColor(
+            (model.desktopFill ?? config.background(isDark: model.isDark)).cgColor(multiplyingAlphaBy: opacity))
         context.addPath(shape)
         context.fillPath()
 

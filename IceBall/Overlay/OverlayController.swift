@@ -381,6 +381,12 @@ final class OverlayController {
             let isDark =
                 wallpapers.luminance(for: screen, bar: bar).map { $0 < Self.darkLuminanceThreshold } ?? menuBarIsDark
             if placement == .belowMenuBar { wallpaper = nil }
+            // Without the picture, the configured colors are used.
+            let desktopFill =
+                settings.configuration.colorFromDesktopPicture
+                ? wallpapers.averageColor(for: screen, bar: bar).map {
+                    DesktopPictureColor.fill(from: $0, isDark: isDark)
+                } : nil
 
             let barInView = CGRect(x: 0, y: OverlayPanel.shadowMargin, width: bar.width, height: bar.height)
             let shapes = ShapeLayout.rects(
@@ -395,7 +401,8 @@ final class OverlayController {
                 configuration: settings.configuration,
                 isDark: isDark,
                 placement: placement,
-                wallpaper: wallpaper
+                wallpaper: wallpaper,
+                desktopFill: desktopFill
             )
 
             let panel = panels[id] ?? makePanel(for: id)

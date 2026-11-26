@@ -101,7 +101,7 @@
     "items": [
       {
         "lead": "Colors for light and dark mode,",
-        "rest": "switched with the system."
+        "rest": "switched with the system, or taken from your desktop picture."
       },
       {
         "lead": "Opacity",

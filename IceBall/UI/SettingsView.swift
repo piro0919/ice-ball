@@ -78,8 +78,12 @@ struct SettingsView: View {
             .disabled(settings.configuration.shape == .standard)
 
             Section(L.background) {
-                ColorPicker(L.lightBackground, selection: colorBinding(\.lightBackground), supportsOpacity: false)
-                ColorPicker(L.darkBackground, selection: colorBinding(\.darkBackground), supportsOpacity: false)
+                Toggle(L.colorFromDesktopPicture, isOn: $settings.configuration.colorFromDesktopPicture)
+                Group {
+                    ColorPicker(L.lightBackground, selection: colorBinding(\.lightBackground), supportsOpacity: false)
+                    ColorPicker(L.darkBackground, selection: colorBinding(\.darkBackground), supportsOpacity: false)
+                }
+                .disabled(settings.configuration.colorFromDesktopPicture)
                 slider(L.opacity, value: $settings.configuration.backgroundOpacity, in: 0...1, format: .percent)
             }
             .disabled(settings.configuration.shape == .standard)

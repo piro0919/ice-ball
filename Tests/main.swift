@@ -190,6 +190,43 @@ do {
     expect(WallpaperProvider.averageLuminance(of: solid(0)) < 0.05, "black reads as dark")
     expect(WallpaperProvider.averageLuminance(of: solid(1)) > 0.95, "white reads as light")
     expect(abs(WallpaperProvider.averageLuminance(of: solid(0.5)) - 0.5) < 0.02, "mid gray reads as mid")
+
+    let plum = CGContext(
+        data: nil, width: 40, height: 8, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+    plum.setFillColor(CGColor(srgbRed: 0.5, green: 0.2, blue: 0.4, alpha: 1))
+    plum.fill(CGRect(x: 0, y: 0, width: 40, height: 8))
+    let average = WallpaperProvider.averageColor(of: plum.makeImage()!)
+    expect(abs(average.red - 0.5) < 0.02 && abs(average.green - 0.2) < 0.02 && abs(average.blue - 0.4) < 0.02,
+        "the average color of a solid picture is that color")
+}
+
+print("DesktopPictureColor")
+do {
+    func close(_ a: RGBAColor, _ b: RGBAColor) -> Bool {
+        abs(a.red - b.red) < 0.005 && abs(a.green - b.green) < 0.005 && abs(a.blue - b.blue) < 0.005
+    }
+    for c in [RGBAColor(red: 0.5, green: 0.2, blue: 0.4), RGBAColor(red: 0.1, green: 0.6, blue: 0.3),
+        RGBAColor(red: 0.2, green: 0.3, blue: 0.9), RGBAColor(red: 0.9, green: 0.8, blue: 0.1)] {
+        let (h, s, l) = DesktopPictureColor.hsl(c)
+        expect(close(DesktopPictureColor.color(hue: h, saturation: s, lightness: l), c), "HSL round trip \(c)")
+    }
+    let blue = RGBAColor(red: 0.2, green: 0.35, blue: 0.7)
+    let dark = DesktopPictureColor.fill(from: blue, isDark: true)
+    let light = DesktopPictureColor.fill(from: blue, isDark: false)
+    expect(abs(DesktopPictureColor.hsl(dark).lightness - DesktopPictureColor.darkLightness) < 0.005,
+        "behind light titles the fill is dark")
+    expect(abs(DesktopPictureColor.hsl(light).lightness - DesktopPictureColor.lightLightness) < 0.005,
+        "behind dark titles the fill is light")
+    expect(abs(DesktopPictureColor.hsl(dark).hue - DesktopPictureColor.hsl(blue).hue) < 0.005
+        && abs(DesktopPictureColor.hsl(light).hue - DesktopPictureColor.hsl(blue).hue) < 0.005,
+        "the fill keeps the picture's hue")
+    expect(dark.blue > dark.red && light.blue > light.red, "a blue picture gives a blue fill")
+    let red = DesktopPictureColor.fill(from: RGBAColor(red: 1, green: 0, blue: 0), isDark: true)
+    expect(abs(DesktopPictureColor.hsl(red).saturation - DesktopPictureColor.maximumSaturation) < 0.005,
+        "a vivid picture is toned down")
+    let gray = DesktopPictureColor.fill(from: RGBAColor(red: 0.4, green: 0.4, blue: 0.4), isDark: false)
+    expect(gray.red == gray.green && gray.green == gray.blue, "a gray picture gives a gray fill")
 }
 
 print("Settings persistence")
@@ -211,14 +248,19 @@ do {
         decoded?.shape == .split && decoded?.cornerRadius == 4
             && decoded?.borderWidth == AppearanceConfiguration.default.borderWidth, "missing keys fall back to defaults"
     )
+    expect(decoded?.colorFromDesktopPicture == false, "configurations saved before the switch existed keep their colors")
+    store.configuration.colorFromDesktopPicture = true
+    expect(SettingsStore(defaults: defaults).configuration.colorFromDesktopPicture, "the switch survives a reload")
 }
 
 print("Offscreen render")
 let outputDirectory = URL(fileURLWithPath: CommandLine.arguments.dropFirst().first ?? "build/snapshots")
 try? FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
 
-func render(name: String, shape: MenuBarShape, isDark: Bool, placement: OverlayPlacement, wallpaper: CGImage? = nil)
-    -> NSBitmapImageRep?
+func render(
+    name: String, shape: MenuBarShape, isDark: Bool, placement: OverlayPlacement, wallpaper: CGImage? = nil,
+    desktopFill: RGBAColor? = nil
+) -> NSBitmapImageRep?
 {
     var config = AppearanceConfiguration.default
     config.shape = shape
@@ -233,7 +275,8 @@ func render(name: String, shape: MenuBarShape, isDark: Bool, placement: OverlayP
         configuration: config,
         isDark: isDark,
         placement: placement,
-        wallpaper: wallpaper
+        wallpaper: wallpaper,
+        desktopFill: desktopFill
     )
     guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return nil }
     view.cacheDisplay(in: view.bounds, to: rep)
@@ -262,6 +305,15 @@ if let rep = render(name: "split-dark-below", shape: .split, isDark: true, place
 if let rep = render(name: "rounded-light-below", shape: .rounded, isDark: false, placement: .belowMenuBar) {
     expect(alpha(rep, x: 900, yFromTop: 20) > 0.7, "Rounded fills across the middle")
     expect(alpha(rep, x: 7, yFromTop: 4) < 0.3, "the rounded corner is cut away")
+}
+let teal = DesktopPictureColor.fill(from: RGBAColor(red: 0.1, green: 0.5, blue: 0.5), isDark: false)
+if let rep = render(
+    name: "rounded-light-desktop-color", shape: .rounded, isDark: false, placement: .belowMenuBar, desktopFill: teal),
+    let pixel = rep.colorAt(x: Int(900 * CGFloat(rep.pixelsWide) / 1800), y: Int(20 * CGFloat(rep.pixelsWide) / 1800))?
+        .usingColorSpace(.sRGB)
+{
+    expect(pixel.greenComponent > pixel.redComponent + 0.05 && pixel.blueComponent > pixel.redComponent + 0.05,
+        "the fill taken from the desktop picture is drawn instead of the light color")
 }
 
 // A striped stand-in for the desktop picture.

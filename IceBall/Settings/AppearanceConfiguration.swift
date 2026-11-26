@@ -59,6 +59,9 @@ nonisolated struct AppearanceConfiguration: Codable, Equatable, Sendable {
     /// Fill used while the menu bar is drawn with a dark appearance.
     var darkBackground = RGBAColor(red: 0.11, green: 0.11, blue: 0.12)
     var backgroundOpacity: Double = 0.55
+    /// Take the fill's hue from the desktop picture under the menu bar instead of the two
+    /// colors above, which remain the fallback when the picture cannot be read.
+    var colorFromDesktopPicture = false
     var borderColor = RGBAColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 0.6)
     var borderWidth: Double = 0
     var shadowEnabled = true
@@ -86,6 +89,8 @@ nonisolated struct AppearanceConfiguration: Codable, Equatable, Sendable {
         lightBackground = (try? c.decode(RGBAColor.self, forKey: .lightBackground)) ?? d.lightBackground
         darkBackground = (try? c.decode(RGBAColor.self, forKey: .darkBackground)) ?? d.darkBackground
         backgroundOpacity = (try? c.decode(Double.self, forKey: .backgroundOpacity)) ?? d.backgroundOpacity
+        colorFromDesktopPicture =
+            (try? c.decode(Bool.self, forKey: .colorFromDesktopPicture)) ?? d.colorFromDesktopPicture
         borderColor = (try? c.decode(RGBAColor.self, forKey: .borderColor)) ?? d.borderColor
         borderWidth = (try? c.decode(Double.self, forKey: .borderWidth)) ?? d.borderWidth
         shadowEnabled = (try? c.decode(Bool.self, forKey: .shadowEnabled)) ?? d.shadowEnabled

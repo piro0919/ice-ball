@@ -41,6 +41,7 @@ nonisolated enum L {
     static var horizontalMargin: String { t("左右の余白", "Side Margin") }
     static var verticalMargin: String { t("上下の余白", "Top and Bottom Margin") }
     static var background: String { t("背景", "Background") }
+    static var colorFromDesktopPicture: String { t("壁紙から色を取る", "Color from Desktop Picture") }
     static var lightBackground: String { t("背景色（ライト）", "Color (Light)") }
     static var darkBackground: String { t("背景色（ダーク）", "Color (Dark)") }
     static var opacity: String { t("透明度", "Opacity") }

@@ -22,7 +22,7 @@ final class WallpaperProvider {
         var scale: CGFloat
     }
 
-    private var cache: [CGDirectDisplayID: (key: Key, image: CGImage, luminance: CGFloat)] = [:]
+    private var cache: [CGDirectDisplayID: (key: Key, image: CGImage, average: RGBAColor)] = [:]
     private var loading: [CGDirectDisplayID: Key] = [:]
     /// Keys whose last load produced nothing; not retried until `invalidate()`.
     private var failures: [CGDirectDisplayID: Key] = [:]
@@ -47,9 +47,14 @@ final class WallpaperProvider {
 
     /// Average luminance (0–1) of the strip, once `image(for:bar:)` has loaded it.
     func luminance(for screen: NSScreen, bar: NSRect) -> CGFloat? {
+        averageColor(for: screen, bar: bar).map(Self.luminance)
+    }
+
+    /// Average color of the strip, once `image(for:bar:)` has loaded it.
+    func averageColor(for screen: NSScreen, bar: NSRect) -> RGBAColor? {
         let key = Key(displayID: screen.displayID, bar: bar, scale: screen.backingScaleFactor)
         guard let cached = cache[key.displayID], cached.key == key else { return nil }
-        return cached.luminance
+        return cached.average
     }
 
     private func startLoadingIfNeeded(key: Key, screen: NSScreen) {
@@ -83,7 +88,7 @@ final class WallpaperProvider {
             guard let self, self.generation == generation, self.loading[key.displayID] == key else { return }
             self.loading[key.displayID] = nil
             if let image {
-                self.cache[key.displayID] = (key, image, Self.averageLuminance(of: image))
+                self.cache[key.displayID] = (key, image, Self.averageColor(of: image))
             } else {
                 self.failures[key.displayID] = key
             }
@@ -210,6 +215,16 @@ final class WallpaperProvider {
 
     /// Rec. 709 luma averaged over a 32×4 downscale of the image.
     nonisolated static func averageLuminance(of image: CGImage) -> CGFloat {
+        luminance(averageColor(of: image))
+    }
+
+    /// Rec. 709 luma of a color (the average of the luma equals the luma of the average).
+    nonisolated static func luminance(_ c: RGBAColor) -> CGFloat {
+        CGFloat(0.2126 * c.red + 0.7152 * c.green + 0.0722 * c.blue)
+    }
+
+    /// sRGB average over a 32×4 downscale of the image.
+    nonisolated static func averageColor(of image: CGImage) -> RGBAColor {
         let width = 32
         let height = 4
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
@@ -218,14 +233,17 @@ final class WallpaperProvider {
                 data: &pixels, width: width, height: height, bitsPerComponent: 8,
                 bytesPerRow: width * 4, space: space,
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-        else { return 0.5 }
+        else { return RGBAColor(red: 0.5, green: 0.5, blue: 0.5) }
         context.interpolationQuality = .medium
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        var total: Double = 0
+        var sums = (0.0, 0.0, 0.0)
         for i in stride(from: 0, to: pixels.count, by: 4) {
-            total += 0.2126 * Double(pixels[i]) + 0.7152 * Double(pixels[i + 1]) + 0.0722 * Double(pixels[i + 2])
+            sums.0 += Double(pixels[i])
+            sums.1 += Double(pixels[i + 1])
+            sums.2 += Double(pixels[i + 2])
         }
-        return CGFloat(total / Double(width * height) / 255)
+        let count = Double(width * height) * 255
+        return RGBAColor(red: sums.0 / count, green: sums.1 / count, blue: sums.2 / count)
     }
 
     /// Where the image lands on the screen for each "Fill/Fit/Stretch/Center" choice.

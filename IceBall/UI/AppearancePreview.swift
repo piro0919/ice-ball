@@ -16,6 +16,21 @@ struct AppearancePreview: View {
     private let menuTitles = PreviewMetrics.menuTitles
     private let statusSymbols = PreviewMetrics.statusSymbols
 
+
+    /// The two corners of the preview's diagonal gradient, which stands in for the desktop picture.
+    static func backdrop(isDark: Bool) -> [RGBAColor] {
+        isDark
+            ? [RGBAColor(red: 0.13, green: 0.2, blue: 0.36), RGBAColor(red: 0.36, green: 0.18, blue: 0.4)]
+            : [RGBAColor(red: 0.55, green: 0.75, blue: 0.95), RGBAColor(red: 0.95, green: 0.75, blue: 0.7)]
+    }
+
+    /// Roughly the average of the gradient along the top edge, where the bar sits.
+    static func backdropAverage(isDark: Bool) -> RGBAColor {
+        let c = backdrop(isDark: isDark)
+        return RGBAColor(
+            red: (c[0].red + c[1].red) / 2, green: (c[0].green + c[1].green) / 2, blue: (c[0].blue + c[1].blue) / 2)
+    }
+
     var body: some View {
         GeometryReader { proxy in
             let isDark = colorScheme == .dark
@@ -26,11 +41,11 @@ struct AppearancePreview: View {
                 rightExtent: metrics.statusWidth > 0 ? metrics.statusWidth + contentInset : nil
             )
 
+            let backdrop = Self.backdrop(isDark: isDark)
+
             ZStack(alignment: .topLeading) {
                 LinearGradient(
-                    colors: isDark
-                        ? [Color(red: 0.13, green: 0.2, blue: 0.36), Color(red: 0.36, green: 0.18, blue: 0.4)]
-                        : [Color(red: 0.55, green: 0.75, blue: 0.95), Color(red: 0.95, green: 0.75, blue: 0.7)],
+                    colors: backdrop.map { Color(nsColor: $0.nsColor) },
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 )
 
@@ -46,7 +61,11 @@ struct AppearancePreview: View {
                             to: Path(CGRect(x: -50, y: -50, width: bar.width + 100, height: 200)).subtracting(path))
                         shadowed.fill(path, with: .color(.black))
                     }
-                    let fill = configuration.background(isDark: isDark)
+                    // The preview's own backdrop stands in for the desktop picture.
+                    let fill =
+                        configuration.colorFromDesktopPicture
+                        ? DesktopPictureColor.fill(from: Self.backdropAverage(isDark: isDark), isDark: isDark)
+                        : configuration.background(isDark: isDark)
                     context.fill(
                         path, with: .color(Color(nsColor: fill.nsColor).opacity(configuration.backgroundOpacity)))
                     if configuration.borderWidth > 0 {

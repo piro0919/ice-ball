@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Split: when you switch apps, the left shape grows or shrinks to the new app's menus in 0.25 s instead of jumping. With Reduce motion on, it still jumps
+- "Color from Desktop Picture" in the Background settings: the fill takes the hue of the desktop picture under each display's menu bar, dark behind light menu titles and light behind dark ones. Off by default; the two colors remain the fallback when the picture cannot be read
 - Split no longer falls back to one shape for a moment right after an app switch
 
 ## [0.1.1]
