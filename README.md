@@ -43,7 +43,7 @@ Tests (geometry, settings persistence, offscreen rendering; snapshots go to `bui
 ./test.sh
 ```
 
-The app has no Dock icon and no menu bar icon. Open the settings by launching the app again from Finder or Spotlight; the settings window also has "Check for Updates…" and "Quit Ice Ball".
+The app has no Dock icon and no menu bar icon. Opening it shows the settings window; when it is already running, open it again from Finder or Spotlight. At login it starts with the window closed. Only one instance runs: opening a second copy from another folder brings up the running one's settings and quits. The settings window also has "Check for Updates…" and "Quit Ice Ball".
 
 ## Permissions
 
@@ -66,7 +66,7 @@ Even then, an Accessibility grant made while an ad-hoc build was running stays t
 
 ```
 IceBall/
-  App/        main.swift, AppDelegate — lifecycle, reopening into the settings window, light/dark fallback; Updater (Sparkle)
+  App/        main.swift, AppDelegate — lifecycle, the settings window at launch and on reopen, a single instance, light/dark fallback; Updater (Sparkle)
   Settings/   AppearanceConfiguration (Codable values), SettingsStore (@Observable, UserDefaults, login item)
   MenuBar/    SystemMenuBar (window list facts), MenuBarRegionReader (Accessibility), MenuBarRegions (pure math)
   Overlay/    OverlayController (events → layout), OverlayPanel, OverlayView (drawing),
@@ -169,6 +169,7 @@ Checked:
 - Resolution change: switching the built-in display to 1352 × 845 redrew the overlay at the new width (the menu bar became 30 pt high); the desktop picture took a few seconds to be recaptured, during which no overlay was shown. Switched back afterwards.
 - Status item run: Accessibility reported one item (Raycast) at x = 1158 while the drawn items started at 1292; only the contiguous run from the right edge is used now, and the right shape hugs the visible icons.
 - Launch at login: turning the switch on registered the app (`sfltool dumpbtm`: enabled, allowed); turning it off removed it.
+- Launch and a second copy: `open` on the built app showed the settings window (window list, layer 0). Opening a copy from another folder left one process; with the window closed beforehand, the running instance showed it again.
 - Switching desktops: with a second desktop added on the built-in display, Control-→ and Control-← kept the overlay in place on both desktops (snapshots of each; the second desktop was removed afterwards).
 - Full screen and the space switch it causes: putting a Finder window into full screen on the built-in display hid only that display's overlay (the Sidecar one stayed), and leaving full screen showed it again. Checked from the window list's on-screen flags.
 
@@ -177,4 +178,4 @@ Not checked:
 - How the overlay looks with a transparent menu bar (below placement): this machine has the menu bar background turned on.
 - Plugging or unplugging a display (a resolution change, which goes through the same notification, was checked).
 - A status item appearing or disappearing: a test app's new status item was not shown by macOS at all (Accessibility returned no value for it), and quitting one of the machine's own status item apps was not done.
-- Actually starting at login (registration was checked, a log-in was not done).
+- Actually starting at login (registration was checked, a log-in was not done), and so whether the settings window stays closed then. The check reads `keyAELaunchedAsLogInItem` from the launch event.

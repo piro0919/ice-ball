@@ -125,7 +125,7 @@
       },
       {
         "lead": "No Dock icon and no menu bar icon.",
-        "rest": "Open the app again from Finder or Spotlight to show its settings."
+        "rest": "Opening the app shows its settings; while it runs, open it again from Finder or Spotlight."
       },
       {
         "lead": "Open at Login,",
