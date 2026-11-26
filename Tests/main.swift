@@ -262,6 +262,11 @@ do {
     expect(swollen.contains(CGPoint(x: 900, y: 35)) && swollen.contains(CGPoint(x: 100, y: 35)),
         "the rest of the shape is still filled")
     expect(!swollen.contains(CGPoint(x: 7, y: 51)), "the corners stay rounded")
+    let shrunk = CGRect(x: 6, y: 19, width: 600, height: 33)
+    let stale = PointerReach.path(
+        for: [shrunk], cornerRadius: r, bulge: .init(index: 0, x: 900, depth: PointerReach.maximumDepth))
+    expect(stale.boundingBox.maxX <= shrunk.maxX + 0.5,
+        "a swelling left behind by a shrinking shape stays inside it")
     let flat = PointerReach.path(for: [shape], cornerRadius: r, bulge: .init(index: 0, x: 900, depth: 0.01))
     expect(flat == ShapeLayout.path(for: [shape], cornerRadius: r), "a swelling too small to see draws the plain shape")
 

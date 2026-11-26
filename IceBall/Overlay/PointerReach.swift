@@ -71,7 +71,14 @@ nonisolated enum PointerReach {
                 path.addRoundedRect(in: rect, cornerWidth: radius, cornerHeight: radius)
                 continue
             }
-            let x = bulge.x
+            // Kept on the straight part of the edge even if the shape changed under it.
+            let lowest = rect.minX + radius + halfWidth
+            let highest = rect.maxX - radius - halfWidth
+            guard lowest <= highest else {
+                path.addRoundedRect(in: rect, cornerWidth: radius, cornerHeight: radius)
+                continue
+            }
+            let x = min(max(bulge.x, lowest), highest)
             let w = halfWidth
             let bottom = rect.minY - bulge.depth
             path.move(to: CGPoint(x: rect.minX + radius, y: rect.maxY))

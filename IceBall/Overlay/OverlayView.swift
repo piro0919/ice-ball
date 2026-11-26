@@ -152,12 +152,18 @@ final class OverlayView: NSView {
                     cornerRadius: config.cornerRadius, reach: reach))
         }
 
+        // The shapes move under a resting pointer after an app switch; follow them.
+        updateBulgeTarget()
         let oldBulge = bulge
         bulgeSpring.step(toward: bulgeTarget, dt: dt)
-        let depth = max(CGFloat(bulgeSpring.value), -PointerReach.maximumDip)
+        let shapes = displayedShapes ?? model.shapes
+        // The spring overshoots its target; never past the deepest the placement allows.
+        let deepest =
+            shapes.indices.contains(bulgeIndex)
+            ? PointerReach.maximumDepth(shape: shapes[bulgeIndex], bar: model.bar, placement: model.placement) : 0
+        let depth = min(max(CGFloat(bulgeSpring.value), -PointerReach.maximumDip), deepest)
         bulge = abs(depth) > 0.05 ? PointerReach.Bulge(index: bulgeIndex, x: bulgeX, depth: depth) : nil
         if bulge != oldBulge {
-            let shapes = displayedShapes ?? model.shapes
             // Moving the swelling to the other shape of Split redraws both places.
             setNeedsDisplay(
                 PointerReach.dirtyRect(from: oldBulge, to: bulge, shapes: shapes, in: bounds, reach: reach))
