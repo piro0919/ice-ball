@@ -24,7 +24,12 @@ final class OverlayView: NSView {
                 // A new target while moving starts from where the shapes are now.
                 startAnimation(from: displayedShapes ?? oldValue.shapes, to: model.shapes)
             } else {
-                stopAnimation()
+                stopShapeAnimation()
+            }
+            if model?.configuration.reachesTowardPointer != true {
+                resetBulge()
+            } else {
+                updateBulgeTarget()
             }
             needsDisplay = true
         }
@@ -35,42 +40,133 @@ final class OverlayView: NSView {
     private var animationFrom: [CGRect] = []
     private var animationStart: CFTimeInterval = 0
     private var displayLink: CADisplayLink?
+    private var lastStep: CFTimeInterval = 0
+
+    // MARK: Reach toward pointer
+
+    /// The pointer in view coordinates, or nil when it is away or a menu is open.
+    private var pointer: CGPoint?
+    private var bulgeSpring = Spring()
+    private var bulgeTarget: Double = 0
+    private var bulgeIndex = 0
+    private var bulgeX: CGFloat = 0
+
+    /// The swelling being drawn now, if any.
+    private(set) var bulge: PointerReach.Bulge?
+
+    /// Called by the controller as the pointer moves; nil when it should not pull the shape.
+    func setPointer(_ point: CGPoint?) {
+        guard point != pointer else { return }
+        pointer = point
+        updateBulgeTarget()
+    }
+
+    private func updateBulgeTarget() {
+        guard let model, model.configuration.reachesTowardPointer,
+            !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        else { return resetBulge() }
+        let shapes = displayedShapes ?? model.shapes
+        if let pointer,
+            let target = PointerReach.target(
+                pointer: pointer, shapes: shapes, cornerRadius: model.configuration.cornerRadius)
+        {
+            bulgeIndex = target.index
+            bulgeX = target.x
+            let depth = PointerReach.maximumDepth(
+                shape: shapes[target.index], bar: model.bar, placement: model.placement)
+            bulgeTarget = Double(depth * target.strength)
+        } else {
+            // Spring back where it is.
+            bulgeTarget = 0
+        }
+        if !bulgeSpring.isSettled(at: bulgeTarget) || bulge.map({ $0.x != bulgeX || $0.index != bulgeIndex }) == true {
+            startDisplayLink()
+        }
+    }
+
+    private func resetBulge() {
+        let hadBulge = bulge != nil
+        bulgeSpring = Spring()
+        bulgeTarget = 0
+        bulge = nil
+        if hadBulge { needsDisplay = true }
+        stopDisplayLinkIfIdle()
+    }
+
+    private var isAnimatingShapes: Bool { displayedShapes != nil }
 
     private func startAnimation(from: [CGRect], to: [CGRect]) {
         animationFrom = from
         animationStart = CACurrentMediaTime()
         displayedShapes = from
-        if displayLink == nil {
-            let link = displayLink(target: self, selector: #selector(step))
-            // 60 frames a second: each frame is a commit to the window server, and 120 on a
-            // ProMotion display doubled the CPU time for little visible gain in 0.25 s.
-            link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
-            link.add(to: .main, forMode: .common)
-            displayLink = link
-        }
+        startDisplayLink()
     }
 
-    private func stopAnimation() {
+    private func startDisplayLink() {
+        guard displayLink == nil else { return }
+        let link = displayLink(target: self, selector: #selector(step))
+        // 60 frames a second: each frame is a commit to the window server, and 120 on a
+        // ProMotion display doubled the CPU time for little visible gain in 0.25 s.
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
+        link.add(to: .main, forMode: .common)
+        displayLink = link
+        lastStep = CACurrentMediaTime()
+    }
+
+    private func stopShapeAnimation() {
+        displayedShapes = nil
+        stopDisplayLinkIfIdle()
+    }
+
+    private func stopDisplayLinkIfIdle() {
+        guard !isAnimatingShapes, bulgeSpring.isSettled(at: bulgeTarget) else { return }
         displayLink?.invalidate()
         displayLink = nil
-        displayedShapes = nil
     }
 
     @objc private func step(_ link: CADisplayLink) {
-        guard let model else { return stopAnimation() }
-        let before = displayedShapes ?? model.shapes
-        let progress = (CACurrentMediaTime() - animationStart) / ShapeAnimation.duration
-        if progress >= 1 {
-            stopAnimation()
-        } else {
-            displayedShapes = ShapeAnimation.interpolate(from: animationFrom, to: model.shapes, progress: progress)
+        guard let model else {
+            displayedShapes = nil
+            bulge = nil
+            displayLink?.invalidate()
+            displayLink = nil
+            return
         }
+        let now = CACurrentMediaTime()
+        let dt = now - lastStep
+        lastStep = now
         let config = model.configuration
         let reach = (config.shadowEnabled ? config.shadowRadius * 3 + 2 : 0) + config.borderWidth + 2
-        setNeedsDisplay(
-            ShapeAnimation.dirtyRect(
-                from: before, to: displayedShapes ?? model.shapes, in: bounds,
-                cornerRadius: config.cornerRadius, reach: reach))
+
+        if isAnimatingShapes {
+            let before = displayedShapes ?? model.shapes
+            let progress = (now - animationStart) / ShapeAnimation.duration
+            if progress >= 1 {
+                displayedShapes = nil
+            } else {
+                displayedShapes = ShapeAnimation.interpolate(from: animationFrom, to: model.shapes, progress: progress)
+            }
+            setNeedsDisplay(
+                ShapeAnimation.dirtyRect(
+                    from: before, to: displayedShapes ?? model.shapes, in: bounds,
+                    cornerRadius: config.cornerRadius, reach: reach))
+        }
+
+        let oldBulge = bulge
+        bulgeSpring.step(toward: bulgeTarget, dt: dt)
+        let depth = max(CGFloat(bulgeSpring.value), -PointerReach.maximumDip)
+        bulge = abs(depth) > 0.05 ? PointerReach.Bulge(index: bulgeIndex, x: bulgeX, depth: depth) : nil
+        if bulge != oldBulge {
+            let shapes = displayedShapes ?? model.shapes
+            // Moving the swelling to the other shape of Split redraws both places.
+            setNeedsDisplay(
+                PointerReach.dirtyRect(from: oldBulge, to: bulge, shapes: shapes, in: bounds, reach: reach))
+        }
+
+        if !isAnimatingShapes && bulgeSpring.isSettled(at: bulgeTarget) {
+            displayLink?.invalidate()
+            displayLink = nil
+        }
     }
 
     override var isFlipped: Bool { false }
@@ -80,7 +176,8 @@ final class OverlayView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let model, !model.shapes.isEmpty, let context = NSGraphicsContext.current?.cgContext else { return }
         let config = model.configuration
-        let shape = ShapeLayout.path(for: displayedShapes ?? model.shapes, cornerRadius: config.cornerRadius)
+        let shape = PointerReach.path(
+            for: displayedShapes ?? model.shapes, cornerRadius: config.cornerRadius, bulge: bulge)
 
         // Outside of the shape: paint the desktop picture over the system menu bar
         // background so the bar appears to end at the shape's edge.

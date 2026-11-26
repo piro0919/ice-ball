@@ -74,6 +74,7 @@ struct SettingsView: View {
                 slider(
                     L.verticalMargin, value: $settings.configuration.verticalMargin,
                     in: AppearanceConfiguration.verticalMarginRange)
+                Toggle(L.reachTowardPointer, isOn: $settings.configuration.reachesTowardPointer)
             }
             .disabled(settings.configuration.shape == .standard)
 

@@ -40,6 +40,7 @@ nonisolated enum L {
     static var cornerRadius: String { t("角丸の半径", "Corner Radius") }
     static var horizontalMargin: String { t("左右の余白", "Side Margin") }
     static var verticalMargin: String { t("上下の余白", "Top and Bottom Margin") }
+    static var reachTowardPointer: String { t("カーソルに寄る", "Reach Toward Pointer") }
     static var background: String { t("背景", "Background") }
     static var colorFromDesktopPicture: String { t("壁紙から色を取る", "Color from Desktop Picture") }
     static var lightBackground: String { t("背景色（ライト）", "Color (Light)") }

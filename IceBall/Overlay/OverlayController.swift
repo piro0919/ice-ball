@@ -24,6 +24,9 @@ final class OverlayController {
     private var spaceSettleTask: Task<Void, Never>?
     private var missingMenuBarTask: Task<Void, Never>?
     private var isRunning = false
+    private var pointerMonitors: [Any] = []
+    private var lastMenuCheck: CFTimeInterval = 0
+    private var menuIsOpen = false
 
     /// Whether the system appearance is dark. Set by the app delegate; used for the fill only
     /// when the desktop picture under the bar is not available.
@@ -53,6 +56,7 @@ final class OverlayController {
         workspaceKVO.removeAll()
         defaultsObserver.stop()
         stopSplitRefresh()
+        stopPointerTracking()
         wallpapers.stopWatching()
         removeAllPanels()
     }
@@ -80,6 +84,11 @@ final class OverlayController {
             startSplitRefresh()
         } else {
             stopSplitRefresh()
+        }
+        if isActive && settings.configuration.reachesTowardPointer {
+            startPointerTracking()
+        } else {
+            stopPointerTracking()
         }
         layout()
     }
@@ -183,6 +192,75 @@ final class OverlayController {
                 self?.layout()
             }
         }
+    }
+
+    // MARK: Pointer (Reach Toward Pointer only)
+
+    /// Mouse events are watched only while the setting is on. Monitoring mouse events, unlike
+    /// key events, needs no permission.
+    private func startPointerTracking() {
+        guard pointerMonitors.isEmpty else { return }
+        let mask: NSEvent.EventTypeMask = [
+            .mouseMoved, .leftMouseDragged, .rightMouseDragged, .leftMouseDown, .rightMouseDown,
+        ]
+        if let monitor = NSEvent.addGlobalMonitorForEvents(
+            matching: mask,
+            handler: { [weak self] event in
+                let isPress = event.type == .leftMouseDown || event.type == .rightMouseDown
+                MainActor.assumeIsolated { self?.pointerMoved(isPress: isPress) }
+            })
+        {
+            pointerMonitors.append(monitor)
+        }
+        // The global monitor does not see events sent to Ice Ball's own settings window.
+        if let monitor = NSEvent.addLocalMonitorForEvents(
+            matching: mask,
+            handler: { [weak self] event in
+                self?.pointerMoved(isPress: event.type == .leftMouseDown || event.type == .rightMouseDown)
+                return event
+            })
+        {
+            pointerMonitors.append(monitor)
+        }
+        pointerMoved(isPress: false)
+    }
+
+    private func stopPointerTracking() {
+        for monitor in pointerMonitors { NSEvent.removeMonitor(monitor) }
+        pointerMonitors.removeAll()
+        for panel in panels.values { panel.overlayView.setPointer(nil) }
+    }
+
+    private func pointerMoved(isPress: Bool) {
+        let location = NSEvent.mouseLocation
+        let near = panels.values.contains {
+            $0.isVisible && $0.frame.insetBy(dx: -PointerReach.range, dy: -PointerReach.range).contains(location)
+        }
+        let now = CACurrentMediaTime()
+        if near && isPress {
+            // A click on the bar usually opens a menu: let go at once, and look again later.
+            menuIsOpen = true
+            lastMenuCheck = now
+        } else if near && now - lastMenuCheck > 0.15 {
+            lastMenuCheck = now
+            menuIsOpen = Self.aMenuIsOpen()
+        }
+        for panel in panels.values {
+            guard near, !menuIsOpen, panel.isVisible else {
+                panel.overlayView.setPointer(nil)
+                continue
+            }
+            panel.overlayView.setPointer(
+                CGPoint(x: location.x - panel.frame.minX, y: location.y - panel.frame.minY))
+        }
+    }
+
+    /// Whether a menu is showing: an open menu is a window at the pop-up menu level (seen on
+    /// macOS 27.2.1 for a status item menu). Cheap enough (well under a millisecond) to ask a
+    /// few times a second while the pointer is near the bar.
+    private static func aMenuIsOpen() -> Bool {
+        let menuLevel = Int(CGWindowLevelForKey(.popUpMenuWindow))
+        return SystemMenuBar.onScreenWindows().contains { $0[kCGWindowLayer as String] as? Int == menuLevel }
     }
 
     // MARK: Region measurement (Split only)

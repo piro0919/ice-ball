@@ -229,6 +229,65 @@ do {
     expect(gray.red == gray.green && gray.green == gray.blue, "a gray picture gives a gray fill")
 }
 
+print("PointerReach")
+do {
+    // View coordinates, y up: a Rounded shape 33 pt tall whose bottom edge is at y = 19.
+    let shape = CGRect(x: 6, y: 19, width: 1788, height: 33)
+    let r: CGFloat = 10
+    expect(PointerReach.target(pointer: CGPoint(x: 900, y: 19 - 41), shapes: [shape], cornerRadius: r) == nil,
+        "a pointer more than 40 pt below the shape does not pull it")
+    let far = PointerReach.target(pointer: CGPoint(x: 900, y: 19 - 30), shapes: [shape], cornerRadius: r)
+    let near = PointerReach.target(pointer: CGPoint(x: 900, y: 19 - 5), shapes: [shape], cornerRadius: r)
+    let inside = PointerReach.target(pointer: CGPoint(x: 900, y: 40), shapes: [shape], cornerRadius: r)
+    expect(far != nil && near != nil && far!.strength < near!.strength, "the closer the pointer, the stronger the pull")
+    expect(inside?.strength == 1, "a pointer on the bar pulls fully")
+    expect(near?.x == 900, "the swelling is centered under the pointer")
+    let corner = PointerReach.target(pointer: CGPoint(x: 8, y: 15), shapes: [shape], cornerRadius: r)
+    expect(corner?.x == 6 + r + PointerReach.halfWidth, "the swelling stays clear of the rounded corner")
+
+    let left = CGRect(x: 6, y: 19, width: 447, height: 33)
+    let right = CGRect(x: 1053, y: 19, width: 741, height: 33)
+    expect(PointerReach.target(pointer: CGPoint(x: 1100, y: 10), shapes: [left, right], cornerRadius: r)?.index == 1,
+        "with Split, the shape nearest the pointer is pulled")
+    expect(PointerReach.target(pointer: CGPoint(x: 753, y: 10), shapes: [left, right], cornerRadius: r) == nil,
+        "a pointer in the middle of a wide gap pulls neither shape")
+    let narrow = CGRect(x: 6, y: 19, width: 60, height: 33)
+    expect(PointerReach.target(pointer: CGPoint(x: 30, y: 15), shapes: [narrow], cornerRadius: r) == nil,
+        "a shape too narrow for the swelling is left alone")
+
+    let swollen = PointerReach.path(
+        for: [shape], cornerRadius: r, bulge: .init(index: 0, x: 900, depth: PointerReach.maximumDepth))
+    expect(swollen.contains(CGPoint(x: 900, y: 19 - 5)), "the swollen edge reaches below the shape")
+    expect(!swollen.contains(CGPoint(x: 900 - PointerReach.halfWidth - 2, y: 18)), "only the part under the pointer swells")
+    expect(swollen.contains(CGPoint(x: 900, y: 35)) && swollen.contains(CGPoint(x: 100, y: 35)),
+        "the rest of the shape is still filled")
+    expect(!swollen.contains(CGPoint(x: 7, y: 51)), "the corners stay rounded")
+    let flat = PointerReach.path(for: [shape], cornerRadius: r, bulge: .init(index: 0, x: 900, depth: 0.01))
+    expect(flat == ShapeLayout.path(for: [shape], cornerRadius: r), "a swelling too small to see draws the plain shape")
+
+    let bar = CGRect(x: 0, y: 16, width: 1800, height: 39)
+    expect(PointerReach.maximumDepth(shape: shape, bar: bar, placement: .belowMenuBar) == PointerReach.maximumDepth,
+        "under a transparent bar the swelling goes its full depth")
+    expect(PointerReach.maximumDepth(shape: shape, bar: bar, placement: .aboveMenuBar) == 3,
+        "over the system's bar the swelling stops at the bar's bottom edge")
+    expect(PointerReach.maximumDepth(shape: bar, bar: bar, placement: .aboveMenuBar) == 0,
+        "with no bottom margin there is no room to swell over the system's bar")
+
+    var spring = Spring()
+    var peak = 0.0
+    var frames = 0
+    while !(spring.isSettled(at: 6)) && frames < 600 {
+        spring.step(toward: 6, dt: 1.0 / 60)
+        peak = max(peak, spring.value)
+        frames += 1
+    }
+    expect(spring.value == 6, "the spring settles on its target")
+    expect(peak > 6.1 && peak < 7.5, "it overshoots a little on the way (peak \(peak))")
+    expect(frames < 90, "and settles within a second and a half (\(frames) frames)")
+    spring.step(toward: 0, dt: 5)
+    expect(spring.value.isFinite && abs(spring.value) < 7, "a long pause between frames does not blow up")
+}
+
 print("Settings persistence")
 do {
     let defaults = UserDefaults(suiteName: "IceBallTests-\(UUID().uuidString)")!
@@ -251,6 +310,10 @@ do {
     expect(decoded?.colorFromDesktopPicture == false, "configurations saved before the switch existed keep their colors")
     store.configuration.colorFromDesktopPicture = true
     expect(SettingsStore(defaults: defaults).configuration.colorFromDesktopPicture, "the switch survives a reload")
+    expect(decoded?.reachesTowardPointer == false && AppearanceConfiguration.default.reachesTowardPointer == false,
+        "Reach Toward Pointer is off by default and for older saved settings")
+    store.configuration.reachesTowardPointer = true
+    expect(SettingsStore(defaults: defaults).configuration.reachesTowardPointer, "Reach Toward Pointer survives a reload")
 }
 
 print("Offscreen render")

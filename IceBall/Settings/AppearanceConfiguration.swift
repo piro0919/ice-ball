@@ -66,6 +66,8 @@ nonisolated struct AppearanceConfiguration: Codable, Equatable, Sendable {
     var borderWidth: Double = 0
     var shadowEnabled = true
     var shadowRadius: Double = 4
+    /// The bottom edge of the shape nearest the pointer swells toward it.
+    var reachesTowardPointer = false
 
     static let `default` = AppearanceConfiguration()
 
@@ -95,6 +97,8 @@ nonisolated struct AppearanceConfiguration: Codable, Equatable, Sendable {
         borderWidth = (try? c.decode(Double.self, forKey: .borderWidth)) ?? d.borderWidth
         shadowEnabled = (try? c.decode(Bool.self, forKey: .shadowEnabled)) ?? d.shadowEnabled
         shadowRadius = (try? c.decode(Double.self, forKey: .shadowRadius)) ?? d.shadowRadius
+        reachesTowardPointer =
+            (try? c.decode(Bool.self, forKey: .reachesTowardPointer)) ?? d.reachesTowardPointer
     }
 
     func background(isDark: Bool) -> RGBAColor {

@@ -71,7 +71,8 @@ IceBall/
   MenuBar/    SystemMenuBar (window list facts), MenuBarRegionReader (Accessibility), MenuBarRegions (pure math)
   Overlay/    OverlayController (events → layout), OverlayPanel, OverlayView (drawing),
               ShapeLayout (pure geometry, shared with the preview), ShapeAnimation (easing and redraw area),
-              DesktopPictureColor (fill from the desktop picture), WallpaperProvider
+              DesktopPictureColor (fill from the desktop picture), PointerReach (swelling and spring),
+              WallpaperProvider
   UI/         SettingsWindowController, SettingsView, AppearancePreview (SwiftUI), Localization (Japanese and English)
 Tests/        main.swift — dependency-free checks run by test.sh
 Tools/        make-icon.py — writes Resources/AppIcon.icns and assets/AppIcon.png from assets/icon-source.png (prompt in docs/art-prompt.md)
@@ -88,9 +89,14 @@ How it works:
 4. **Regions.** Each display's menu bar can show a different app (the app of that display's frontmost window). `MenuBarRegionReader` hit-tests the left end of each display's menu bar with Accessibility, reads that app's `AXMenuBar` children, and measures them on that display. Status items come from each app's `AXExtrasMenuBar`; they are reported for the active display only and are laid out from the right edge the same way everywhere, so one extent serves all displays. All calls run on a background queue with a 0.1 s timeout per app.
    - Right after an app switch the new app's menus read as nothing for about 0.2 s (macOS 27.2.1). While the retries after a switch are running, a display that reads as nothing keeps its last width; only the last retry, 1.5 s after the switch, accepts nothing.
 5. **Fill color.** The light or dark color is chosen from the brightness of the desktop picture under the bar. With "Color from Desktop Picture" on, the fill instead takes the hue of that strip's average color, with the saturation capped at 50 % and the lightness set to 22 % behind light menu titles or 86 % behind dark ones (`DesktopPictureColor`). Each display uses its own picture. When the picture is not available, the two configured colors are used. The settings preview treats its own gradient as the picture.
-6. **Events.** Display changes, Space changes (which includes entering and leaving full screen), wake, app launch/quit, the menu-bar-owning app changing, light/dark changes, the wallpaper store file changing, and the global defaults `_HIHideMenuBar` / `SLSMenuBarUseBlurredAppearance` changing all trigger a re-layout. A panel is redrawn only when its draw model changes.
+6. **Reach Toward Pointer.** With the switch on (off by default), the bottom edge of the shape nearest the pointer swells toward it like a drop of water (`PointerReach`): from 40 pt away, up to 6 pt deep with the pointer on or just under the bar, over 52 pt of the edge and clear of the corners. It follows the pointer sideways and springs back with a small overshoot when the pointer leaves.
+   - The pointer comes from global and local `NSEvent` monitors for mouse moves, drags and clicks, installed only while the switch is on. Monitoring mouse events needs no permission.
+   - While a menu is open nothing swells. An open menu is a window at the pop-up menu level (101) in the window list; seen for a Finder menu and a status item menu on macOS 27.2.1. The list is read at most every 0.15 s and only with the pointer near the bar, and a click near the bar lets go at once.
+   - With the background shown, the swelling stays inside the bar: past the bar's bottom edge there is no system bar behind the 35 % fill, and the swollen part showed as a lighter strip. With no bottom margin there is then no room to swell.
+   - Off while "Reduce motion" is on.
+7. **Events.** Display changes, Space changes (which includes entering and leaving full screen), wake, app launch/quit, the menu-bar-owning app changing, light/dark changes, the wallpaper store file changing, and the global defaults `_HIHideMenuBar` / `SLSMenuBarUseBlurredAppearance` changing all trigger a re-layout. A panel is redrawn only when its draw model changes.
    - After a wallpaper change or turning auto-hide off, macOS takes the menu bar off screen while it rebuilds it and posts nothing when it is back (observed from about 10 s up to several minutes, ending at the next app switch). While a display's menu bar is missing, Ice Ball looks again at growing intervals (1 s up to 60 s, about 5 minutes in all) and also on every app switch.
-7. **Quit / disable.** The system menu bar is never modified; closing the panels restores the standard look.
+8. **Quit / disable.** The system menu bar is never modified; closing the panels restores the standard look.
 
 ## Privacy
 
@@ -142,7 +148,7 @@ There are no timers in Default and Rounded. Split's 5-second timer exists becaus
 
 ## Known limitations
 
-- **"Show menu bar background" detection is only partly checked.** The global default `SLSMenuBarUseBlurredAppearance` is read as that switch. Toggling the switch in System Settings on macOS 27.2.1 removed the key when turned off and wrote 1 when turned back on, so the mapping holds. With the switch off, though, the system still drew the menu bar as solid dark gray (32, 32, 32) on the development machine, with Claude or Finder in front and with other windows hidden, so how the overlay looks over a transparent bar remains unchecked. If the detection is wrong, override it:
+- **"Show menu bar background" detection is only partly checked.** The global default `SLSMenuBarUseBlurredAppearance` is read as that switch. Toggling the switch in System Settings on macOS 27.2.1 removed the key when turned off and wrote 1 when turned back on, so the mapping holds. With the switch off, though, the system still drew the menu bar as solid dark gray (32, 32, 32) on the development machine, with Claude or Finder in front and with other windows hidden, so how the overlay looks over a transparent bar remains unchecked. "Reduce transparency" in System Settings › Accessibility › Display was also on on that machine and may be what keeps the bar solid; that has not been checked either. If the detection is wrong, override it:
   ```bash
   defaults write io.kkweb.IceBall PlacementOverride below   # or: above; delete the key to go back to detection
   ```
@@ -160,7 +166,7 @@ There are no timers in Default and Rounded. Split's 5-second timer exists becaus
 
 Checked:
 
-- Builds with `swiftc` (Swift 6.4.2, macOS 27.2 SDK, deployment target 26.0) with no warnings; `./test.sh` passes (71 checks).
+- Builds with `swiftc` (Swift 6.4.2, macOS 27.2 SDK, deployment target 26.0) with no warnings; `./test.sh` passes (93 checks).
 - Offscreen rendering of Split/Rounded, light/dark, below/above placement (`build/snapshots`).
 - On the real machine: one panel per display with a menu bar (notched built-in display and a Sidecar display), at the right frames and window level; no panels when the desktop picture is unavailable in "background shown" mode; CPU and memory above.
 - Accessibility frames of app menus and status items, and the private window list no longer listing status items, on macOS 27.2.1.
@@ -180,6 +186,7 @@ Checked:
 - Switching desktops: with a second desktop added on the built-in display, Control-→ and Control-← kept the overlay in place on both desktops (snapshots of each; the second desktop was removed afterwards).
 - Shape movement after an app switch, from screen recordings of the built-in display (Split, background shown): Calculator → Claude moved the left shape's end from 648 to 888 px over about 0.2 s, fast at first and slowing to a stop; Claude → Calculator moved it back the same way. Before the change, Claude → Calculator showed one full-width shape for about 0.3 s first (seen with 0.1.1 too), from the empty measurement described under "Regions"; after it, no such frame.
 - "Color from Desktop Picture", with the background shown and a brown wood desktop picture: the fill at a sample point was (100, 98, 95) with the switch on and (110, 110, 110) with it off; the settings window showed the switch at the top of Background with the two colors dimmed. With a transparent menu bar it was not checked: turning "Show menu bar background" off on this machine still left a solid system bar (see Known limitations).
+- Reach Toward Pointer, from screen recordings of the built-in display (Split, background shown, then the panel forced below the bar): with the pointer moved by synthetic events to 40, 20 and 6 pt under the left shape, the edge above it swelled, followed the pointer sideways, and sprang back within about a third of a second when it left; the global mouse monitor received the synthetic moves. Above the bar the swollen part past the bar's edge showed as a lighter strip, which led to keeping the swelling inside the bar there. Opening a Finder menu put a Finder window at level 101 in the window list for as long as it was open. Not checked: how it looks under a transparent bar, and whether nothing swells while a menu is open (the menu covered the spot in the recording).
 - Full screen and the space switch it causes: putting a Finder window into full screen on the built-in display hid only that display's overlay (the Sidecar one stayed), and leaving full screen showed it again. Checked from the window list's on-screen flags.
 
 Not checked:
