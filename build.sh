@@ -75,17 +75,8 @@ cp IceBall/Info.plist "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" -c "Set :CFBundleVersion $VERSION" \
   "$APP/Contents/Info.plist"
 
-# The app icon, built from the 1024 px master when it exists.
-if [[ -f Resources/AppIcon.png ]]; then
-  ICONSET=$OUT/AppIcon.iconset
-  rm -rf "$ICONSET"
-  mkdir -p "$ICONSET"
-  for size in 16 32 128 256 512; do
-    sips -z $size $size Resources/AppIcon.png --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
-    sips -z $((size * 2)) $((size * 2)) Resources/AppIcon.png --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
-  done
-  iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
-fi
+# The app icon, written by Tools/make-icon.py from assets/icon-source.png.
+[[ -f Resources/AppIcon.icns ]] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 
 # Sign from the inside out; signing the app first would be broken by signing its contents later.
 SPARKLE=$APP/Contents/Frameworks/Sparkle.framework/Versions/B
