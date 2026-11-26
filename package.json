@@ -1,0 +1,8 @@
+{
+  "name": "ice-ball",
+  "private": true,
+  "scripts": {
+    "lp:dev": "pnpm --filter ice-ball-lp dev",
+    "lp:build": "pnpm --filter ice-ball-lp build"
+  }
+}

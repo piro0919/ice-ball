@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/* 手本は Replay の Sleeve の LP（Parroo の LP と同じ形）。暗い地に、角の丸い一段明るいカードを置く。
+   差し色はアプリのアイコンの氷の水色と、地の紺 */
+@theme {
+  --color-night: #0e1018;
+  --color-card: #181b26;
+  --color-card-line: rgb(255 255 255 / 0.07);
+  --color-mute: #a3a8b8;
+  --color-faint: #6c7184;
+  --color-ice: #9fd0ff;
+  --color-navy: #2a3f9e;
+  --color-frost: #d6e9ff;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-night);
+  color: #f2f4f3;
+
+  /* 日本語を語のまとまりで折り返す。これが無いと見出しが「を、」や
+     「キ／ーボード」で割れる。対応していないブラウザでは従来どおり */
+  word-break: auto-phrase;
+}
+
+/* Sleeve と同じく、Mac では SF Pro とヒラギノで出す。それ以外は Noto Sans JP */
+.font-system {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", var(--font-noto), sans-serif;
+}
+
+/* 製品名。銀色の縦のグラデーション */
+.silver {
+  background: linear-gradient(180deg, #ffffff 0%, #c9d3e3 70%, #94a0b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* デスクトップの壁紙。アイコンの紺の上に、氷の水色の波を重ねる */
+.wallpaper {
+  background:
+    radial-gradient(120% 80% at 80% 0%, rgb(159 208 255 / 0.3) 0%, transparent 60%),
+    linear-gradient(180deg, #1c2a78 0%, #121b52 100%);
+}
+
+/* 区画の見出しの上の小さな札。英語は大文字で字間を空け、日本語は空けすぎない */
+.eyebrow {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+:lang(ja) .eyebrow {
+  letter-spacing: 0.04em;
+}

@@ -1,0 +1,128 @@
+{
+  "meta": {
+    "title": "Ice Ball — A new shape for your menu bar",
+    "description": "A Mac app that draws the menu bar as one rounded shape, or two around the menus and the status icons, with the color, opacity, corners, margins, border and shadow of your choice."
+  },
+  "hero": {
+    "tagline": "A new shape for your menu bar.",
+    "lead": "Ice Ball lays a rounded shape over the menu bar — one across the whole bar, or two around the menus and the status icons. Clicks go straight through to the menu bar.",
+    "download": "Download for free",
+    "requirement": "macOS 26 or later · Apple silicon",
+    "homebrew": "Homebrew"
+  },
+  "menuBar": {
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "clock": "Thu Nov 27 10:42"
+  },
+  "settings": {
+    "title": "Ice Ball Settings",
+    "enable": "Change the Menu Bar's Look",
+    "shape": "Shape",
+    "shapeAndMargins": "Shape and Margins",
+    "cornerRadius": "Corner Radius",
+    "sideMargin": "Side Margin",
+    "background": "Background",
+    "opacity": "Opacity"
+  },
+  "shapes": {
+    "eyebrow": "Shapes",
+    "title": "Pick one of three.",
+    "default": {
+      "title": "Default",
+      "body": "The menu bar as macOS draws it."
+    },
+    "rounded": {
+      "title": "Rounded",
+      "body": "One rounded shape across the whole menu bar."
+    },
+    "split": {
+      "title": "Split",
+      "body": "Two rounded shapes, one around the menus and one around the status icons."
+    }
+  },
+  "features": {
+    "eyebrow": "Features",
+    "title": "Your menu bar, your way.",
+    "style": {
+      "title": "Make it yours",
+      "body": "Set the look in the settings window and see it on the menu bar right away.",
+      "items": [
+        "Color for light and dark",
+        "Opacity",
+        "Corner radius",
+        "Side margin",
+        "Top and bottom margin",
+        "Border",
+        "Drop shadow"
+      ]
+    },
+    "displays": {
+      "title": "Every display",
+      "body": "Each display's own menu bar gets its shape, in light and in dark."
+    },
+    "through": {
+      "title": "Stays out of the way",
+      "body": "It hides in full screen and while the menu bar hides itself. It does not hide, reorder or manage menu bar items."
+    }
+  },
+  "install": {
+    "eyebrow": "Get started",
+    "title": "Up and running in three steps.",
+    "steps": [
+      {
+        "title": "Install",
+        "body": "Drag Ice Ball from the DMG into Applications."
+      },
+      {
+        "title": "Let it open",
+        "body": "In System Settings → Privacy & Security, click Open Anyway."
+      },
+      {
+        "title": "Open the settings",
+        "body": "Ice Ball has no menu bar icon. Open it again from Finder or Spotlight to show its settings."
+      }
+    ],
+    "note": "Default and Rounded need no permission. Split needs Accessibility permission to read where the menus and status icons are.",
+    "cta": "Download for free"
+  },
+  "footer": {
+    "source": "Source code",
+    "releases": "Release notes",
+    "privacy": "Privacy",
+    "independent": "Ice Ball is an independent project and is not affiliated with or endorsed by Ice or its author."
+  },
+  "language": {
+    "ja": "日本語",
+    "en": "English"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "updated": "Last updated: November 27, 2026",
+    "intro": "Ice Ball changes how the menu bar looks. That is all it does. There is no Ice Ball server, no analytics and no account.",
+    "sections": [
+      {
+        "title": "What it reads",
+        "body": "For Split, Ice Ball uses Accessibility to read where the app menus and status icons sit on the menu bar. When the macOS setting “Show menu bar background” is on, it reads your desktop picture file, or, when that file cannot be read and Screen Recording is allowed, captures only the desktop picture under the menu bar. All of this stays on your Mac."
+      },
+      {
+        "title": "Update checks go to GitHub",
+        "body": "Ice Ball checks for a new version once, at launch, and not again until the next launch. The check downloads one small file from GitHub Releases, so GitHub sees the same request — IP address included — as any other download."
+      },
+      {
+        "title": "No analytics",
+        "body": "There is no crash reporting, no usage tracking, no device identifier and no third-party SDK in the app."
+      },
+      {
+        "title": "You can check all of this",
+        "body": "Ice Ball is open source under the MIT License. Everything on this page can be checked against the source code. If something looks wrong, please open an issue."
+      },
+      {
+        "title": "Changes",
+        "body": "If a future version handles data differently, this page will be updated before that version is released."
+      }
+    ],
+    "back": "Back to Ice Ball"
+  }
+}

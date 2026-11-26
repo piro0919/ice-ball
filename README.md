@@ -6,6 +6,8 @@ Ice Ball is an independent project. It is not affiliated with or endorsed by [Ic
 
 Target: Apple silicon, macOS 26 or later. Developed and checked on macOS 27.2.1.
 
+There is a page for it at [ice-ball.kkweb.io](https://ice-ball.kkweb.io).
+
 ## Install
 
 Download `IceBall-<version>.dmg` from [Releases](https://github.com/piro0919/ice-ball/releases/latest) and drag Ice Ball into Applications, or use Homebrew:
@@ -97,6 +99,15 @@ Ice Ball reads the menu bar's position from the window list, the frames of menus
 ```
 
 The script checks that the tree is clean and pushed, takes the release notes from the version's section of `CHANGELOG.md`, runs the tests, builds and signs the app, makes the DMG and the update zip, signs `appcast.xml` with the Sparkle key in the login keychain, and creates the GitHub release. The Homebrew cask in `piro0919/homebrew-tap` is updated separately.
+
+## Landing page
+
+`lp/` is the page at [ice-ball.kkweb.io](https://ice-ball.kkweb.io): Next.js with next-intl (English and Japanese), deployed on Vercel with `lp` as the root directory. Its menu bar and settings window are drawn in code, matching the app's strings in `IceBall/UI/Localization.swift` and the defaults in `AppearanceConfiguration.swift`; change them together.
+
+```bash
+pnpm install
+pnpm lp:dev
+```
 
 ## Findings from Ice
 
