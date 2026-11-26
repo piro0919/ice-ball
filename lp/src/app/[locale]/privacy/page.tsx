@@ -43,17 +43,17 @@ export default async function Page({ params }: PageProps) {
     <main className="px-6 py-16">
       <div className="mx-auto max-w-2xl">
         <h1 className="font-bold text-4xl tracking-[-0.02em]">{t("title")}</h1>
-        <p className="mt-2 text-[var(--color-faint)] text-sm">{t("updated")}</p>
-        <p className="mt-8 text-white/85 leading-relaxed">{t("intro")}</p>
+        <p className="mt-2 text-[var(--color-mute)] text-sm">{t("updated")}</p>
+        <p className="mt-8 text-[var(--color-ink)] leading-relaxed">{t("intro")}</p>
 
         {sections.map((section) => (
           <section className="mt-10" key={section.title}>
             <h2 className="font-bold text-xl">{section.title}</h2>
-            <p className="mt-3 text-[var(--color-mute)] leading-relaxed">{section.body}</p>
+            <p className="mt-3 text-[var(--color-ink-2)] leading-relaxed">{section.body}</p>
           </section>
         ))}
 
-        <p className="mt-16 border-white/10 border-t pt-6 text-[var(--color-mute)] text-sm">
+        <p className="mt-16 border-black/10 border-t pt-6 text-[var(--color-mute)] text-sm">
           <Link className="underline" href="/">
             ← {t("back")}
           </Link>

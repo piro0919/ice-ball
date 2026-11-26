@@ -102,7 +102,7 @@ The script checks that the tree is clean and pushed, takes the release notes fro
 
 ## Landing page
 
-`lp/` is the page at [ice-ball.kkweb.io](https://ice-ball.kkweb.io): Next.js with next-intl (English and Japanese), deployed on Vercel with `lp` as the root directory. Its menu bar and settings window are drawn in code, matching the app's strings in `IceBall/UI/Localization.swift` and the defaults in `AppearanceConfiguration.swift`; change them together.
+`lp/` is the page at [ice-ball.kkweb.io](https://ice-ball.kkweb.io): Next.js with next-intl (English and Japanese), deployed on Vercel with `lp` as the root directory. The menu bar samples on wallpaper strips (`lp/src/app/[locale]/menu-bar.tsx`) are drawn in code, matching the app's strings in `IceBall/UI/Localization.swift` and the defaults in `AppearanceConfiguration.swift`; change them together.
 
 ```bash
 pnpm install

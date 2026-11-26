@@ -2,74 +2,108 @@ import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { Link } from "@/i18n/navigation";
-import { DesktopMock, MenuBar, type Shape, Waves } from "./desktop-mock";
 import { LanguageSwitch } from "./language-switch";
+import { AppleLogo, type Look, type Mode, type Shape, Strip } from "./menu-bar";
 
 const REPO = "https://github.com/piro0919/ice-ball";
 const DOWNLOAD = `${REPO}/releases/latest`;
 const BREW = "brew install --cask piro0919/tap/ice-ball";
 
-type Step = { title: string; body: string };
+type Row = { title: string; body: string };
+type Permission = { label: string; body: string };
+type Detail = { lead: string; rest: string };
 
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
 
-/// 白い主ボタンと、縁だけの副ボタン。Sleeve の「Mac App Store」「Buy Directly」の対
-function Buttons({ download, homebrew }: { download: string; homebrew: string }) {
+/// 見本の一覧。手本の Boring Old Menu Bar が全スタイルをアプリの値で描いて並べるのにならい、
+/// 形3つをダークとライトで、加えて半径 0 に境界線を付けた例を置く
+const TILES: { key: string; shape: Shape; mode: Mode; look?: Look }[] = [
+  { key: "default", shape: "default", mode: "dark" },
+  { key: "roundedDark", shape: "rounded", mode: "dark" },
+  { key: "splitDark", shape: "split", mode: "dark" },
+  { key: "roundedLight", shape: "rounded", mode: "light" },
+  { key: "splitLight", shape: "split", mode: "light" },
+  { key: "square", shape: "rounded", mode: "dark", look: { radius: 0, border: 1 } },
+];
+
+/// ページの上の帯。手本の Hand Mirror がページの一番上を macOS のメニューバーにしているのにならい、
+/// Ice Ball の Rounded の形で描く。項目は区画への移動
+async function TopBar() {
+  const t = await getTranslations("nav");
+  const item = "hidden rounded-[5px] px-2 py-0.5 transition hover:bg-black/8 md:inline";
+
   return (
-    <div className="flex flex-wrap justify-center gap-3">
-      <a
-        className="inline-flex h-14 items-center rounded-full bg-white px-7 font-semibold text-[17px] text-black transition hover:bg-white/90"
-        href={DOWNLOAD}
-      >
-        {download}
-      </a>
-      <a
-        className="inline-flex h-14 items-center rounded-full px-7 font-semibold text-[17px] text-white ring-1 ring-white/20 transition hover:bg-white/5"
-        href="#install"
-      >
-        {homebrew}
-      </a>
+    <div className="sticky top-0 z-50 px-1.5 pt-1.5">
+      <nav className="flex h-[30px] items-center justify-between rounded-[10px] bg-white/55 px-3 text-[13px] text-black/85 shadow-[0_1px_4px_rgb(0_0_0/0.18)] ring-1 ring-black/5 backdrop-blur-xl">
+        <div className="flex items-center gap-1">
+          <AppleLogo className="mr-2 h-[14px] w-[14px]" />
+          <Link className="mr-1 flex items-center gap-1.5 font-semibold" href="/">
+            <Image alt="" className="h-4 w-4" height={64} src="/icon.png" width={64} />
+            Ice Ball
+          </Link>
+          <a className={item} href="#shapes">
+            {t("shapes")}
+          </a>
+          <a className={item} href="#how">
+            {t("how")}
+          </a>
+          <a className={item} href="#details">
+            {t("details")}
+          </a>
+        </div>
+        <div className="flex items-center gap-3">
+          <LanguageSwitch />
+          <a className="font-semibold text-[var(--color-accent)]" href={DOWNLOAD}>
+            {t("download")}
+          </a>
+        </div>
+      </nav>
     </div>
   );
 }
 
-/// 区画の見出し。色の付いた小さな札と、大きな1行
-function SectionTitle({
-  eyebrow,
-  title,
-  color,
+/// 手本と同じく、黒の主ボタンと白の副ボタン。どちらも2行で、下の行に中身を書く
+function Buttons({
+  download,
+  downloadSub,
+  homebrew,
+  homebrewSub,
 }: {
-  eyebrow: string;
-  title: string;
-  color: string;
+  download: string;
+  downloadSub: string;
+  homebrew: string;
+  homebrewSub: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4 text-center">
-      <span className={`eyebrow font-semibold text-[13px] ${color}`}>{eyebrow}</span>
-      <h2 className="text-balance font-bold text-4xl tracking-[-0.02em] sm:text-5xl">{title}</h2>
+    <div className="flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
+      <a
+        className="flex items-center gap-3 rounded-lg bg-[#1d1d1f] px-6 py-3 text-left text-white transition hover:bg-black"
+        href={DOWNLOAD}
+      >
+        <DownloadIcon />
+        <span className="flex flex-col">
+          <span className="font-semibold text-[15px]">{download}</span>
+          <span className="text-[12px] text-white/65">{downloadSub}</span>
+        </span>
+      </a>
+      <a
+        className="flex items-center gap-3 rounded-lg bg-white px-6 py-3 text-left ring-1 ring-black/12 transition hover:bg-black/[0.03]"
+        href="#get"
+      >
+        <TerminalIcon />
+        <span className="flex flex-col">
+          <span className="font-semibold text-[15px]">{homebrew}</span>
+          <span className="font-mono text-[12px] text-[var(--color-mute)]">{homebrewSub}</span>
+        </span>
+      </a>
     </div>
   );
 }
 
-function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <div
-      className={`overflow-hidden rounded-[24px] bg-[var(--color-card)] ring-1 ring-[var(--color-card-line)] ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function CardText({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <h3 className="font-semibold text-[22px] tracking-[-0.01em]">{title}</h3>
-      <p className="text-[17px] text-[var(--color-mute)] leading-relaxed">{body}</p>
-    </div>
-  );
+function Label({ children }: { children: ReactNode }) {
+  return <p className="mb-2 font-semibold text-[13px] text-[var(--color-ink-2)]">{children}</p>;
 }
 
 export default async function Page({ params }: PageProps) {
@@ -77,176 +111,239 @@ export default async function Page({ params }: PageProps) {
   setRequestLocale(locale);
 
   const t = await getTranslations();
-  const install = t.raw("install.steps") as Step[];
-  const shapes: Shape[] = ["default", "rounded", "split"];
+  const rows = t.raw("rows") as Row[];
+  const how = t.raw("how.body") as string[];
+  const permissions = t.raw("how.aside.items") as Permission[];
+  const details = t.raw("details.items") as Detail[];
+  const buttons = (
+    <Buttons
+      download={t("hero.download")}
+      downloadSub={t("hero.downloadSub")}
+      homebrew={t("hero.homebrew")}
+      homebrewSub={t("hero.homebrewSub")}
+    />
+  );
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 sm:px-10">
-      {/* 上の帯 */}
-      <header className="flex items-center justify-between py-8">
-        <Link className="flex items-center gap-2.5" href="/">
-          <Image alt="" className="h-8 w-8" height={64} src="/icon.png" width={64} />
-          <span className="font-bold text-lg tracking-[-0.01em]">Ice Ball</span>
-        </Link>
-        <nav className="flex items-center gap-6 text-[15px] text-[var(--color-mute)]">
-          <a className="hidden transition hover:text-white sm:inline" href={`${REPO}/releases`}>
-            {t("footer.releases")}
-          </a>
-          <a className="hidden transition hover:text-white sm:inline" href={REPO}>
-            GitHub
-          </a>
-          <LanguageSwitch />
-        </nav>
-      </header>
+    <>
+      <TopBar />
 
-      {/* 見出し */}
-      <section className="flex flex-col items-center pt-6">
-        <div className="relative w-full max-w-[900px]">
-          <DesktopMock />
+      {/* 見出し。名前と一文、ボタン、その下に使う前と使った後を同じ壁紙で上下に並べる */}
+      <section className="bg-[var(--color-band)] px-4 pt-16 pb-16 sm:pt-24">
+        <div className="mx-auto flex max-w-[960px] flex-col items-center text-center">
           <Image
             alt=""
-            className="-translate-x-1/2 absolute bottom-0 left-1/2 h-32 w-32 translate-y-1/2 drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)] sm:h-44 sm:w-44"
+            className="h-24 w-24 sm:h-28 sm:w-28"
             height={512}
             priority
             src="/icon-512.png"
             width={512}
           />
-        </div>
-
-        <div className="flex flex-col items-center gap-6 pt-28 text-center sm:pt-36">
-          <h1 className="silver font-bold text-7xl tracking-[-0.04em] sm:text-[104px] sm:leading-none">
-            Ice Ball
+          <h1 className="mt-6 max-w-3xl text-balance font-bold text-[40px] leading-[1.1] tracking-[-0.03em] sm:text-[56px]">
+            {t("hero.title")}
           </h1>
-          <p className="text-balance font-bold text-3xl tracking-[-0.02em] sm:text-5xl">
-            {t("hero.tagline")}
-          </p>
-          <p className="max-w-2xl text-pretty text-[19px] text-[var(--color-mute)] leading-relaxed sm:text-[21px]">
+          <p className="mt-6 max-w-[720px] text-pretty text-[17px] text-[var(--color-ink-2)] leading-relaxed sm:text-[19px]">
             {t("hero.lead")}
           </p>
-          <div className="pt-4">
-            <Buttons download={t("hero.download")} homebrew={t("hero.homebrew")} />
-          </div>
-          <p className="text-[14px] text-[var(--color-faint)]">{t("hero.requirement")}</p>
-        </div>
-      </section>
+          <div className="mt-8 flex w-full justify-center">{buttons}</div>
+          <p className="mt-4 text-[13px] text-[var(--color-mute)]">{t("hero.requirement")}</p>
 
-      {/* 形 */}
-      <section className="flex flex-col gap-14 pt-40">
-        <SectionTitle
-          color="text-[var(--color-ice)]"
-          eyebrow={t("shapes.eyebrow")}
-          title={t("shapes.title")}
-        />
-
-        <div className="grid gap-6 md:grid-cols-3">
-          {shapes.map((shape) => (
-            <Card className="flex flex-col" key={shape}>
-              <div className="wallpaper relative h-40 overflow-hidden">
-                <Waves id={`shape-${shape}`} />
-                {/* 形が見分けられるよう、メニューバーを1.25倍で出す */}
-                <div className="w-[80%] origin-top-left scale-125">
-                  <MenuBar compact shape={shape} />
-                </div>
-              </div>
-              <div className="p-8">
-                <CardText body={t(`shapes.${shape}.body`)} title={t(`shapes.${shape}.title`)} />
-              </div>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* できること */}
-      <section className="flex flex-col gap-14 pt-40">
-        <SectionTitle
-          color="text-[var(--color-frost)]"
-          eyebrow={t("features.eyebrow")}
-          title={t("features.title")}
-        />
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="flex flex-col justify-between gap-10 p-9 md:col-span-2 md:flex-row md:items-center">
-            <div className="md:max-w-[420px]">
-              <CardText body={t("features.style.body")} title={t("features.style.title")} />
+          <div className="mt-14 flex w-full max-w-[640px] flex-col gap-6 text-left">
+            <div>
+              <Label>{t("hero.before")}</Label>
+              <Strip mode="dark" shape="default" tall />
             </div>
-            <div className="flex flex-wrap gap-2 md:max-w-[460px] md:justify-end">
-              {(t.raw("features.style.items") as string[]).map((item) => (
-                <span
-                  className="rounded-full bg-black/30 px-4 py-1.5 text-[15px] text-[var(--color-mute)]"
-                  key={item}
-                >
-                  {item}
-                </span>
+            <div>
+              <Label>{t("hero.after")}</Label>
+              <Strip mode="dark" shape="rounded" tall />
+            </div>
+            <p className="text-[14px] text-[var(--color-mute)] leading-relaxed">
+              {t("hero.caption")}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <main className="px-4">
+        {/* 見出しの下の、見出しと本文の2列。手本の「何を直すか」の並び */}
+        <section className="mx-auto max-w-[960px] pt-8 pb-16">
+          {rows.map((row) => (
+            <div
+              className="grid gap-3 border-black/10 border-b py-8 sm:grid-cols-[2fr_3fr] sm:gap-10"
+              key={row.title}
+            >
+              <h2 className="text-balance font-bold text-[21px] leading-snug tracking-[-0.01em]">
+                {row.title}
+              </h2>
+              <p className="text-[16px] text-[var(--color-ink-2)] leading-relaxed">{row.body}</p>
+            </div>
+          ))}
+        </section>
+      </main>
+
+      {/* 形の一覧 */}
+      <section className="scroll-mt-12 bg-[var(--color-band)] px-4 py-20" id="shapes">
+        <div className="mx-auto max-w-[960px]">
+          <h2 className="text-balance font-bold text-[32px] leading-tight tracking-[-0.02em] sm:text-[36px]">
+            {t("gallery.title")}
+          </h2>
+          <p className="mt-3 max-w-[720px] text-[17px] text-[var(--color-ink-2)] leading-relaxed">
+            {t("gallery.lead")}
+          </p>
+          <div className="mt-10 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+            {TILES.map((tile) => {
+              const note = t(`gallery.tiles.${tile.key}.note`);
+              return (
+                <figure key={tile.key}>
+                  <Strip compact look={tile.look} mode={tile.mode} shape={tile.shape} />
+                  <figcaption className="mt-2 text-[14px]">
+                    {t(`gallery.tiles.${tile.key}.name`)}
+                    {note && <span className="text-[var(--color-mute)]"> ({note})</span>}
+                  </figcaption>
+                </figure>
+              );
+            })}
+          </div>
+          <p className="mt-10 max-w-[720px] text-[14px] text-[var(--color-mute)] leading-relaxed">
+            {t("gallery.footnote")}
+          </p>
+        </div>
+      </section>
+
+      {/* 仕組み。本文と、必要な許可の枠 */}
+      <section className="scroll-mt-12 px-4 py-20" id="how">
+        <div className="mx-auto grid max-w-[960px] gap-10 lg:grid-cols-[3fr_2fr]">
+          <div>
+            <h2 className="font-bold text-[32px] leading-tight tracking-[-0.02em] sm:text-[36px]">
+              {t("how.title")}
+            </h2>
+            <div className="mt-6 flex flex-col gap-5 text-[16px] text-[var(--color-ink-2)] leading-relaxed">
+              {how.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
               ))}
             </div>
-          </Card>
+          </div>
+          <aside className="self-start rounded-2xl bg-[var(--color-band)] p-7 ring-1 ring-black/8">
+            <h3 className="font-semibold text-[16px]">{t("how.aside.title")}</h3>
+            <dl className="mt-4 flex flex-col gap-4 text-[15px] leading-relaxed">
+              {permissions.map((permission) => (
+                <div key={permission.label}>
+                  <dt className="font-semibold">{permission.label}</dt>
+                  <dd className="text-[var(--color-ink-2)]">{permission.body}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-5 text-[14px] text-[var(--color-mute)] leading-relaxed">
+              {t("how.aside.note")}
+            </p>
+          </aside>
+        </div>
+      </section>
 
-          <Card className="flex flex-col gap-8 p-9">
-            <CardText body={t("features.displays.body")} title={t("features.displays.title")} />
-          </Card>
-
-          <Card className="flex flex-col gap-8 p-9">
-            <CardText body={t("features.through.body")} title={t("features.through.title")} />
-          </Card>
+      {/* 細かい仕様。手本と同じく、四角の印を付けた2列 */}
+      <section
+        className="scroll-mt-12 border-black/8 border-t bg-[var(--color-band)] px-4 py-20"
+        id="details"
+      >
+        <div className="mx-auto max-w-[960px]">
+          <h2 className="font-bold text-[32px] leading-tight tracking-[-0.02em] sm:text-[36px]">
+            {t("details.title")}
+          </h2>
+          <ul className="mt-8 grid gap-x-10 sm:grid-cols-2">
+            {details.map((detail) => (
+              <li
+                className="flex gap-3 border-black/10 border-b py-3.5 text-[15px] leading-relaxed"
+                key={detail.lead}
+              >
+                <span className="mt-[7px] h-2.5 w-2.5 shrink-0 rounded-[3px] bg-[var(--color-accent)]/70" />
+                <span>
+                  <strong className="font-semibold">{detail.lead}</strong>{" "}
+                  <span className="text-[var(--color-ink-2)]">{detail.rest}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
       {/* 入れ方 */}
-      <section className="flex scroll-mt-10 flex-col gap-14 pt-40" id="install">
-        <SectionTitle
-          color="text-[var(--color-ice)]"
-          eyebrow={t("install.eyebrow")}
-          title={t("install.title")}
-        />
-
-        <div className="grid gap-6 md:grid-cols-3">
-          {install.map((step, index) => (
-            <Card className="flex flex-col gap-6 p-9" key={step.title}>
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-navy)] font-bold text-lg tabular-nums">
-                {index + 1}
-              </span>
-              <CardText body={step.body} title={step.title} />
-            </Card>
-          ))}
-        </div>
-
-        <pre className="mx-auto w-full max-w-xl overflow-x-auto rounded-2xl bg-[var(--color-card)] px-6 py-4 text-center font-mono text-[14px] text-white/85 ring-1 ring-[var(--color-card-line)]">
-          <code>{BREW}</code>
-        </pre>
-
-        <div className="flex flex-col items-center gap-5 text-center">
-          <Buttons download={t("install.cta")} homebrew={t("hero.homebrew")} />
-          <p className="max-w-xl text-[14px] text-[var(--color-faint)] leading-relaxed">
-            {t("install.note")}
+      <section className="scroll-mt-12 px-4 py-24" id="get">
+        <div className="mx-auto flex max-w-[720px] flex-col items-center text-center">
+          <h2 className="text-balance font-bold text-[32px] leading-tight tracking-[-0.02em] sm:text-[40px]">
+            {t("cta.title")}
+          </h2>
+          <p className="mt-5 text-pretty text-[16px] text-[var(--color-ink-2)] leading-relaxed">
+            {t("cta.lead")}
           </p>
+          <div className="mt-8 flex w-full justify-center">{buttons}</div>
+          <pre className="mt-6 w-full overflow-x-auto rounded-lg bg-[var(--color-band)] px-5 py-3.5 font-mono text-[14px] ring-1 ring-black/8">
+            <code>{BREW}</code>
+          </pre>
         </div>
       </section>
 
-      {/* 下の帯 */}
-      <footer className="mt-40 flex flex-col gap-6 border-white/10 border-t py-10 text-[14px] text-[var(--color-mute)]">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <Image alt="" className="h-6 w-6" height={64} src="/icon.png" width={64} />
-            <span className="font-semibold text-white">Ice Ball</span>
+      <footer className="border-black/8 border-t px-4 py-10 text-[14px] text-[var(--color-mute)]">
+        <div className="mx-auto flex max-w-[960px] flex-col gap-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Image alt="" className="h-5 w-5" height={64} src="/icon.png" width={64} />
+              <span className="font-semibold text-[var(--color-ink)]">Ice Ball</span>
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <a className="transition hover:text-[var(--color-ink)]" href={REPO}>
+                {t("footer.source")}
+              </a>
+              <a className="transition hover:text-[var(--color-ink)]" href={`${REPO}/releases`}>
+                {t("footer.releases")}
+              </a>
+              <Link className="transition hover:text-[var(--color-ink)]" href="/privacy">
+                {t("footer.privacy")}
+              </Link>
+              <a
+                className="transition hover:text-[var(--color-ink)]"
+                href="https://buymeacoffee.com/piro0919"
+              >
+                Buy Me a Coffee
+              </a>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <a className="transition hover:text-white" href={REPO}>
-              {t("footer.source")}
-            </a>
-            <a className="transition hover:text-white" href={`${REPO}/releases`}>
-              {t("footer.releases")}
-            </a>
-            <Link className="transition hover:text-white" href="/privacy">
-              {t("footer.privacy")}
-            </Link>
-            <a className="transition hover:text-white" href="https://buymeacoffee.com/piro0919">
-              Buy Me a Coffee
-            </a>
-          </div>
+          {/* 名前が似ているので、README と同じ断り書きを置く */}
+          <p className="text-[13px]">{t("footer.independent")}</p>
         </div>
-        {/* 名前が似ているので、README と同じ断り書きを置く */}
-        <p className="text-[13px] text-[var(--color-faint)]">{t("footer.independent")}</p>
       </footer>
-    </div>
+    </>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5 fill-none stroke-current"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 4v11" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 20h14" />
+    </svg>
+  );
+}
+
+function TerminalIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5 fill-none stroke-current"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="m5 7 5 5-5 5" />
+      <path d="M12 18h7" />
+    </svg>
   );
 }

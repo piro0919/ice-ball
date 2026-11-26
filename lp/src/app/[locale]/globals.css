@@ -1,59 +1,49 @@
 @import "tailwindcss";
 
-/* 手本は Replay の Sleeve の LP（Parroo の LP と同じ形）。暗い地に、角の丸い一段明るいカードを置く。
-   差し色はアプリのアイコンの氷の水色と、地の紺 */
+/* 手本は2つ。構成と地の色は Boring Old Menu Bar（publicspace.net）にならう。明るい地に、
+   見出しの帯と一覧の帯だけ一段灰色を敷き、間を細い線で区切る。
+   ページの一番上をメニューバーにするのは Hand Mirror（handmirror.app）にならう。
+   差し色はアプリのアイコンの青 */
 @theme {
-  --color-night: #0e1018;
-  --color-card: #181b26;
-  --color-card-line: rgb(255 255 255 / 0.07);
-  --color-mute: #a3a8b8;
-  --color-faint: #6c7184;
-  --color-ice: #9fd0ff;
-  --color-navy: #2a3f9e;
-  --color-frost: #d6e9ff;
+  --color-page: #ffffff;
+  --color-band: #f5f5f7;
+  --color-ink: #1d1d1f;
+  --color-ink-2: #424245;
+  --color-mute: #6e6e73;
+  --color-accent: #2f63d6;
 }
 
 html {
   scroll-behavior: smooth;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  background: var(--color-night);
-  color: #f2f4f3;
+  background: var(--color-page);
+  color: var(--color-ink);
 
   /* 日本語を語のまとまりで折り返す。これが無いと見出しが「を、」や
      「キ／ーボード」で割れる。対応していないブラウザでは従来どおり */
   word-break: auto-phrase;
 }
 
-/* Sleeve と同じく、Mac では SF Pro とヒラギノで出す。それ以外は Noto Sans JP */
+/* Mac では SF Pro とヒラギノで出す。それ以外は Noto Sans JP */
 .font-system {
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", var(--font-noto), sans-serif;
 }
 
-/* 製品名。銀色の縦のグラデーション */
-.silver {
-  background: linear-gradient(180deg, #ffffff 0%, #c9d3e3 70%, #94a0b8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* デスクトップの壁紙。アイコンの紺の上に、氷の水色の波を重ねる */
-.wallpaper {
+/* メニューバーの見本の壁紙。ダークはアイコンの紺に氷の水色の光、ライトは明るい空色 */
+.wallpaper-dark {
   background:
-    radial-gradient(120% 80% at 80% 0%, rgb(159 208 255 / 0.3) 0%, transparent 60%),
-    linear-gradient(180deg, #1c2a78 0%, #121b52 100%);
+    radial-gradient(90% 140% at 85% 120%, rgb(159 208 255 / 0.75) 0%, transparent 60%),
+    radial-gradient(70% 120% at 10% 130%, rgb(90 141 230 / 0.7) 0%, transparent 65%),
+    linear-gradient(180deg, #2c47ad 0%, #24358a 100%);
 }
 
-/* 区画の見出しの上の小さな札。英語は大文字で字間を空け、日本語は空けすぎない */
-.eyebrow {
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-:lang(ja) .eyebrow {
-  letter-spacing: 0.04em;
+.wallpaper-light {
+  background:
+    radial-gradient(90% 140% at 85% 120%, rgb(90 141 230 / 0.55) 0%, transparent 60%),
+    radial-gradient(70% 120% at 10% 130%, rgb(159 208 255 / 0.9) 0%, transparent 65%),
+    linear-gradient(180deg, #dbe9ff 0%, #c4dbff 100%);
 }

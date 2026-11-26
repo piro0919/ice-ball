@@ -3,12 +3,156 @@
     "title": "Ice Ball — A new shape for your menu bar",
     "description": "A Mac app that draws the menu bar as one rounded shape, or two around the menus and the status icons, with the color, opacity, corners, margins, border and shadow of your choice."
   },
+  "nav": {
+    "shapes": "Shapes",
+    "how": "How it works",
+    "details": "Details",
+    "download": "Download"
+  },
   "hero": {
-    "tagline": "A new shape for your menu bar.",
-    "lead": "Ice Ball lays a rounded shape over the menu bar — one across the whole bar, or two around the menus and the status icons. Clicks go straight through to the menu bar.",
-    "download": "Download for free",
-    "requirement": "macOS 26 or later · Apple silicon",
-    "homebrew": "Homebrew"
+    "title": "A new shape for your menu bar.",
+    "lead": "Ice Ball lays a rounded shape over the macOS menu bar: one across the whole bar, or two, around the app menus and around the status icons. You pick the color for light and dark mode, the opacity, the corners, the margins, a border and a shadow. Clicks go straight through to the menu bar, and nothing in macOS is changed.",
+    "download": "Download",
+    "downloadSub": "DMG, Apple silicon",
+    "homebrew": "Homebrew",
+    "homebrewSub": "brew install --cask",
+    "requirement": "Free and open source. macOS 26 or later.",
+    "before": "macOS 26, as shipped",
+    "after": "With Ice Ball, Rounded",
+    "caption": "Same Mac, same wallpaper, same menu bar. The only thing that changed is the shape behind the menu titles."
+  },
+  "gallery": {
+    "title": "Three shapes, in light and dark.",
+    "lead": "Drawn here with the app's own default values: corner radius 10, side margin 6, top and bottom margin 3, 55% opacity, drop shadow on.",
+    "tiles": {
+      "default": {
+        "name": "Default",
+        "note": "as macOS draws it"
+      },
+      "roundedDark": {
+        "name": "Rounded",
+        "note": "the default"
+      },
+      "splitDark": {
+        "name": "Split",
+        "note": "menus and status icons apart"
+      },
+      "roundedLight": {
+        "name": "Rounded, light mode",
+        "note": ""
+      },
+      "splitLight": {
+        "name": "Split, light mode",
+        "note": ""
+      },
+      "square": {
+        "name": "Rounded, radius 0",
+        "note": "with a 1 pt border"
+      }
+    },
+    "footnote": "In light mode the shape takes the light color, in dark mode the dark one, and Ice Ball switches with the system."
+  },
+  "rows": [
+    {
+      "title": "Clicks go straight through.",
+      "body": "The shape is a see-through panel that ignores the mouse. Menus, status icons and the clock respond exactly as they did before."
+    },
+    {
+      "title": "Behind the menu titles, not over them.",
+      "body": "On macOS 26 the menu bar is transparent. Ice Ball puts its panel one level below the menu bar, so macOS keeps drawing the menus and icons on top of the shape, at any opacity you choose."
+    },
+    {
+      "title": "Every display, every Space.",
+      "body": "Each display's menu bar gets its own shape. With Split, the left shape is measured on each display, because each display can show a different app's menus."
+    },
+    {
+      "title": "Gone when the menu bar is.",
+      "body": "In full screen, and while macOS hides the menu bar automatically, the shape goes away and comes back with the menu bar. Ice Ball does not hide, reorder or manage menu bar items."
+    }
+  ],
+  "how": {
+    "title": "How it works, honestly.",
+    "body": [
+      "Ice Ball does not patch macOS, load a kernel extension or inject anything into other apps. It reads where each display's menu bar is from the system's window list, and draws a rounded shape in a borderless, click-through panel of its own, right where the menu bar sits.",
+      "When “Show menu bar background” is on in System Settings, macOS paints a bar of its own, so the panel has to sit above the menu bar instead. Ice Ball then paints the area outside the shape with your desktop picture, and caps the opacity at 35% so the menu titles stay readable.",
+      "Turn the look off or quit the app and the panels close. The menu bar you see is still Apple's, untouched."
+    ],
+    "aside": {
+      "title": "Permissions",
+      "items": [
+        {
+          "label": "Default and Rounded",
+          "body": "No permission needed."
+        },
+        {
+          "label": "Split",
+          "body": "Accessibility, to read where the menus and status icons are. Until it is allowed, Split looks like Rounded."
+        },
+        {
+          "label": "Screen Recording",
+          "body": "Only when “Show menu bar background” is on and the desktop picture file cannot be read."
+        }
+      ],
+      "note": "The settings window says which permission is missing and opens the right pane of System Settings."
+    }
+  },
+  "details": {
+    "title": "The details.",
+    "items": [
+      {
+        "lead": "Colors for light and dark mode,",
+        "rest": "switched with the system."
+      },
+      {
+        "lead": "Opacity",
+        "rest": "from 0 to 100%."
+      },
+      {
+        "lead": "Corner radius",
+        "rest": "from 0 to 20."
+      },
+      {
+        "lead": "Side margin",
+        "rest": "from 0 to 40, top and bottom margin from 0 to 8."
+      },
+      {
+        "lead": "Border",
+        "rest": "from 0 to 4, in a color of your choice."
+      },
+      {
+        "lead": "Drop shadow,",
+        "rest": "with a size from 1 to 10."
+      },
+      {
+        "lead": "No Dock icon and no menu bar icon.",
+        "rest": "Open the app again from Finder or Spotlight to show its settings."
+      },
+      {
+        "lead": "Open at Login,",
+        "rest": "from the settings window."
+      },
+      {
+        "lead": "Checks for updates once at launch",
+        "rest": "and asks before installing."
+      },
+      {
+        "lead": "No analytics, no account.",
+        "rest": "Nothing leaves your Mac except the update check."
+      },
+      {
+        "lead": "Free and open source",
+        "rest": "under the MIT License."
+      },
+      {
+        "lead": "macOS 26 or later,",
+        "rest": "Apple silicon."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Try it on your own menu bar.",
+    "lead": "Download the DMG and drag Ice Ball into Applications, or install it with Homebrew. The app is signed with a personal certificate, so macOS blocks the first launch: open System Settings › Privacy & Security and click Open Anyway.",
+    "download": "Download"
   },
   "menuBar": {
     "file": "File",
@@ -16,86 +160,11 @@
     "view": "View",
     "clock": "Thu Nov 27 10:42"
   },
-  "settings": {
-    "title": "Ice Ball Settings",
-    "enable": "Change the Menu Bar's Look",
-    "shape": "Shape",
-    "shapeAndMargins": "Shape and Margins",
-    "cornerRadius": "Corner Radius",
-    "sideMargin": "Side Margin",
-    "background": "Background",
-    "opacity": "Opacity"
-  },
-  "shapes": {
-    "eyebrow": "Shapes",
-    "title": "Pick one of three.",
-    "default": {
-      "title": "Default",
-      "body": "The menu bar as macOS draws it."
-    },
-    "rounded": {
-      "title": "Rounded",
-      "body": "One rounded shape across the whole menu bar."
-    },
-    "split": {
-      "title": "Split",
-      "body": "Two rounded shapes, one around the menus and one around the status icons."
-    }
-  },
-  "features": {
-    "eyebrow": "Features",
-    "title": "Your menu bar, your way.",
-    "style": {
-      "title": "Make it yours",
-      "body": "Set the look in the settings window and see it on the menu bar right away.",
-      "items": [
-        "Color for light and dark",
-        "Opacity",
-        "Corner radius",
-        "Side margin",
-        "Top and bottom margin",
-        "Border",
-        "Drop shadow"
-      ]
-    },
-    "displays": {
-      "title": "Every display",
-      "body": "Each display's own menu bar gets its shape, in light and in dark."
-    },
-    "through": {
-      "title": "Stays out of the way",
-      "body": "It hides in full screen and while the menu bar hides itself. It does not hide, reorder or manage menu bar items."
-    }
-  },
-  "install": {
-    "eyebrow": "Get started",
-    "title": "Up and running in three steps.",
-    "steps": [
-      {
-        "title": "Install",
-        "body": "Drag Ice Ball from the DMG into Applications."
-      },
-      {
-        "title": "Let it open",
-        "body": "In System Settings → Privacy & Security, click Open Anyway."
-      },
-      {
-        "title": "Open the settings",
-        "body": "Ice Ball has no menu bar icon. Open it again from Finder or Spotlight to show its settings."
-      }
-    ],
-    "note": "Default and Rounded need no permission. Split needs Accessibility permission to read where the menus and status icons are.",
-    "cta": "Download for free"
-  },
   "footer": {
     "source": "Source code",
     "releases": "Release notes",
     "privacy": "Privacy",
     "independent": "Ice Ball is an independent project and is not affiliated with or endorsed by Ice or its author."
-  },
-  "language": {
-    "ja": "日本語",
-    "en": "English"
   },
   "privacy": {
     "title": "Privacy Policy",

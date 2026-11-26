@@ -14,10 +14,10 @@ export function generateStaticParams(): { locale: string }[] {
 }
 
 /* 出るのは kk-web の一覧で176px、X のカードで500px 前後。
-   その大きさで残るのはアイコンと名前と1行だけ。地はサイトと同じ暗い色 */
-const NIGHT = "#0e1018";
-const ICE = "#9fd0ff";
-const WHITE = "#f2f4f3";
+   その大きさで残るのはアイコンと名前と1行だけ。地はサイトの見出しの帯と同じ明るい灰色 */
+const BAND = "#f5f5f7";
+const ACCENT = "#2f63d6";
+const INK = "#1d1d1f";
 
 export default async function OgImage({
   params,
@@ -38,11 +38,8 @@ export default async function OgImage({
     <div
       style={{
         alignItems: "center",
-        /* 地をアイコンと同じ色にすると、アイコンの輪郭が溶けて消える。
-           サイトと同じ暗い地に、アイコンの氷の水色を光として薄く置く */
-        background: NIGHT,
-        backgroundImage:
-          "radial-gradient(60% 80% at 20% 30%, rgba(159,208,255,0.22) 0%, rgba(14,16,24,0) 65%)",
+        /* 地をアイコンと同じ紺にすると、アイコンの輪郭が溶けて消えるので、サイトと同じ明るい地にする */
+        background: BAND,
         display: "flex",
         gap: 56,
         height: "100%",
@@ -53,8 +50,8 @@ export default async function OgImage({
       {/* biome-ignore lint/performance/noImgElement: next/image is not available in ImageResponse */}
       <img alt="" height={250} src={iconSrc} width={250} />
       <div style={{ display: "flex", flexDirection: "column" }}>
-        <div style={{ color: WHITE, fontSize: 124, letterSpacing: -4 }}>Ice Ball</div>
-        <div style={{ color: ICE, display: "flex", fontSize: 34, marginTop: 14 }}>
+        <div style={{ color: INK, fontSize: 124, letterSpacing: -4 }}>Ice Ball</div>
+        <div style={{ color: ACCENT, display: "flex", fontSize: 34, marginTop: 14 }}>
           {isJa ? "メニューバーに、新しい形を。" : "A new shape for your menu bar."}
         </div>
       </div>
