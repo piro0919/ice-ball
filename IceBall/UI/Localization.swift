@@ -45,7 +45,7 @@ nonisolated enum L {
     static var colorFromDesktopPicture: String { t("壁紙から色を取る", "Color from Desktop Picture") }
     static var lightBackground: String { t("背景色（ライト）", "Color (Light)") }
     static var darkBackground: String { t("背景色（ダーク）", "Color (Dark)") }
-    static var opacity: String { t("透明度", "Opacity") }
+    static var opacity: String { t("不透明度", "Opacity") }
     static var borderAndShadow: String { t("境界線と影", "Border and Shadow") }
     static var borderColor: String { t("境界線の色", "Border Color") }
     static var borderWidth: String { t("境界線の太さ", "Border Width") }
