@@ -15,14 +15,16 @@ struct SettingsView: View {
             }
 
             Section {
-                Toggle("外観の変更を有効にする", isOn: $settings.isEnabled)
-                Toggle("ログイン時に起動", isOn: Binding(
-                    get: { settings.launchesAtLogin },
-                    set: { settings.setLaunchesAtLogin($0) }
-                ))
+                Toggle(L.enableAppearance, isOn: $settings.isEnabled)
+                Toggle(
+                    L.launchAtLogin,
+                    isOn: Binding(
+                        get: { settings.launchesAtLogin },
+                        set: { settings.setLaunchesAtLogin($0) }
+                    ))
                 if settings.loginItemStatus == .requiresApproval {
-                    LabeledContent("システム設定の「ログイン項目」で許可が必要です") {
-                        Button("開く") { SMAppService.openSystemSettingsLoginItems() }
+                    LabeledContent(L.loginItemNeedsApproval) {
+                        Button(L.open) { SMAppService.openSystemSettingsLoginItems() }
                     }
                 }
                 if let error = settings.loginItemError {
@@ -30,8 +32,8 @@ struct SettingsView: View {
                 }
             }
 
-            Section("形状") {
-                Picker("形状", selection: $settings.configuration.shape) {
+            Section(L.shape) {
+                Picker(L.shape, selection: $settings.configuration.shape) {
                     ForEach(MenuBarShape.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
@@ -39,52 +41,65 @@ struct SettingsView: View {
 
                 if settings.configuration.shape == .split && !permissions.isAccessibilityTrusted {
                     LabeledContent {
-                        Button("許可する") { permissions.request() }
+                        Button(L.allow) { permissions.request() }
                     } label: {
-                        Text("Split はメニューとステータスアイコンの位置を読むため、アクセシビリティの許可が必要です。許可されるまでは Rounded と同じ形で表示します。")
+                        Text(L.splitNeedsAccessibility)
                             .font(.callout)
                     }
                 }
             }
 
-            if settings.configuration.shape != .standard && permissions.needsDesktopPicture && !permissions.hasScreenCapturePermission {
+            if settings.configuration.shape != .standard && permissions.needsDesktopPicture
+                && !permissions.hasScreenCapturePermission
+            {
                 Section {
                     LabeledContent {
-                        Button("許可する") { permissions.requestScreenCapture() }
+                        Button(L.allow) { permissions.requestScreenCapture() }
                     } label: {
-                        Text("「メニューバーの背景を表示」がオンのため、形の外側を壁紙で塗ります。壁紙の画像ファイルを読めないときは画面収録の許可が要ります。許可したあとは Ice Ball を再起動してください。")
+                        Text(L.needsScreenRecording)
                             .font(.callout)
                     }
                 }
             }
 
-            Section("形と余白") {
-                slider("角丸の半径", value: $settings.configuration.cornerRadius, in: AppearanceConfiguration.cornerRadiusRange)
-                slider("左右の余白", value: $settings.configuration.horizontalMargin, in: AppearanceConfiguration.horizontalMarginRange)
-                slider("上下の余白", value: $settings.configuration.verticalMargin, in: AppearanceConfiguration.verticalMarginRange)
+            Section(L.shapeAndMargins) {
+                slider(
+                    L.cornerRadius, value: $settings.configuration.cornerRadius,
+                    in: AppearanceConfiguration.cornerRadiusRange)
+                slider(
+                    L.horizontalMargin, value: $settings.configuration.horizontalMargin,
+                    in: AppearanceConfiguration.horizontalMarginRange)
+                slider(
+                    L.verticalMargin, value: $settings.configuration.verticalMargin,
+                    in: AppearanceConfiguration.verticalMarginRange)
             }
             .disabled(settings.configuration.shape == .standard)
 
-            Section("背景") {
-                ColorPicker("背景色（ライト）", selection: colorBinding(\.lightBackground), supportsOpacity: false)
-                ColorPicker("背景色（ダーク）", selection: colorBinding(\.darkBackground), supportsOpacity: false)
-                slider("透明度", value: $settings.configuration.backgroundOpacity, in: 0...1, format: .percent)
+            Section(L.background) {
+                ColorPicker(L.lightBackground, selection: colorBinding(\.lightBackground), supportsOpacity: false)
+                ColorPicker(L.darkBackground, selection: colorBinding(\.darkBackground), supportsOpacity: false)
+                slider(L.opacity, value: $settings.configuration.backgroundOpacity, in: 0...1, format: .percent)
             }
             .disabled(settings.configuration.shape == .standard)
 
-            Section("境界線と影") {
-                ColorPicker("境界線の色", selection: colorBinding(\.borderColor), supportsOpacity: true)
-                slider("境界線の太さ", value: $settings.configuration.borderWidth, in: AppearanceConfiguration.borderWidthRange, step: 0.5)
-                Toggle("ドロップシャドウ", isOn: $settings.configuration.shadowEnabled)
-                slider("影の広がり", value: $settings.configuration.shadowRadius, in: AppearanceConfiguration.shadowRadiusRange)
-                    .disabled(!settings.configuration.shadowEnabled)
+            Section(L.borderAndShadow) {
+                ColorPicker(L.borderColor, selection: colorBinding(\.borderColor), supportsOpacity: true)
+                slider(
+                    L.borderWidth, value: $settings.configuration.borderWidth,
+                    in: AppearanceConfiguration.borderWidthRange, step: 0.5)
+                Toggle(L.dropShadow, isOn: $settings.configuration.shadowEnabled)
+                slider(
+                    L.shadowRadius, value: $settings.configuration.shadowRadius,
+                    in: AppearanceConfiguration.shadowRadiusRange
+                )
+                .disabled(!settings.configuration.shadowEnabled)
             }
             .disabled(settings.configuration.shape == .standard)
 
             Section {
                 HStack {
                     Spacer()
-                    Button("デフォルトに戻す") { settings.resetToDefaults() }
+                    Button(L.restoreDefaults) { settings.resetToDefaults() }
                 }
             }
         }
@@ -105,10 +120,14 @@ struct SettingsView: View {
         LabeledContent(title) {
             HStack {
                 Slider(value: value, in: range, step: format == .percent ? 0.01 : step)
-                Text(format == .percent ? value.wrappedValue.formatted(.percent.precision(.fractionLength(0))) : "\(value.wrappedValue.formatted(.number.precision(.fractionLength(0...1)))) pt")
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .frame(width: 48, alignment: .trailing)
+                Text(
+                    format == .percent
+                        ? value.wrappedValue.formatted(.percent.precision(.fractionLength(0)))
+                        : "\(value.wrappedValue.formatted(.number.precision(.fractionLength(0...1)))) pt"
+                )
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: 48, alignment: .trailing)
             }
         }
     }

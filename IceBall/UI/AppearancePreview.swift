@@ -13,7 +13,7 @@ struct AppearancePreview: View {
 
     private let barHeight: CGFloat = 30
     private let contentInset: CGFloat = 16
-    private let menuTitles = ["Finder", "ファイル", "編集", "表示"]
+    private let menuTitles = L.previewMenus
     private let statusSymbols = ["wifi", "battery.75percent", "magnifyingglass", "switch.2"]
 
     var body: some View {
@@ -28,7 +28,8 @@ struct AppearancePreview: View {
 
             ZStack(alignment: .topLeading) {
                 LinearGradient(
-                    colors: isDark ? [Color(red: 0.13, green: 0.2, blue: 0.36), Color(red: 0.36, green: 0.18, blue: 0.4)]
+                    colors: isDark
+                        ? [Color(red: 0.13, green: 0.2, blue: 0.36), Color(red: 0.36, green: 0.18, blue: 0.4)]
                         : [Color(red: 0.55, green: 0.75, blue: 0.95), Color(red: 0.95, green: 0.75, blue: 0.7)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 )
@@ -38,16 +39,22 @@ struct AppearancePreview: View {
                     let path = Path(ShapeLayout.path(for: shapes, cornerRadius: configuration.cornerRadius))
                     if configuration.shadowEnabled {
                         var shadowed = context
-                        shadowed.addFilter(.shadow(color: .black.opacity(isDark ? 0.55 : 0.3), radius: configuration.shadowRadius, y: 1))
-                        shadowed.clip(to: Path(CGRect(x: -50, y: -50, width: bar.width + 100, height: 200)).subtracting(path))
+                        shadowed.addFilter(
+                            .shadow(
+                                color: .black.opacity(isDark ? 0.55 : 0.3), radius: configuration.shadowRadius, y: 1))
+                        shadowed.clip(
+                            to: Path(CGRect(x: -50, y: -50, width: bar.width + 100, height: 200)).subtracting(path))
                         shadowed.fill(path, with: .color(.black))
                     }
                     let fill = configuration.background(isDark: isDark)
-                    context.fill(path, with: .color(Color(nsColor: fill.nsColor).opacity(configuration.backgroundOpacity)))
+                    context.fill(
+                        path, with: .color(Color(nsColor: fill.nsColor).opacity(configuration.backgroundOpacity)))
                     if configuration.borderWidth > 0 {
                         var clipped = context
                         clipped.clip(to: path)
-                        clipped.stroke(path, with: .color(Color(nsColor: configuration.borderColor.nsColor)), lineWidth: configuration.borderWidth * 2)
+                        clipped.stroke(
+                            path, with: .color(Color(nsColor: configuration.borderColor.nsColor)),
+                            lineWidth: configuration.borderWidth * 2)
                     }
                 }
 
@@ -60,13 +67,21 @@ struct AppearancePreview: View {
                             Text($0).fontWeight($0 == "Finder" ? .bold : .regular).fixedSize()
                         }
                     }
-                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { metrics.menusWidth = $0 }
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.width
+                    } action: {
+                        metrics.menusWidth = $0
+                    }
                     Spacer(minLength: 12)
                     HStack(spacing: 10) {
                         ForEach(statusSymbols, id: \.self) { Image(systemName: $0) }
                         Text("11:27").fixedSize()
                     }
-                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { metrics.statusWidth = $0 }
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.width
+                    } action: {
+                        metrics.statusWidth = $0
+                    }
                 }
                 .font(.system(size: 12))
                 .foregroundStyle(isDark ? .white : .black)
@@ -77,7 +92,7 @@ struct AppearancePreview: View {
             .clipped()
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("外観のプレビュー")
+        .accessibilityLabel(L.previewLabel)
     }
 }
 

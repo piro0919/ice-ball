@@ -30,8 +30,10 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
                 AXUIElementSetMessagingTimeout(systemWide, Self.messagingTimeout)
                 var hit: AXUIElement?
                 var pid: pid_t = 0
-                guard AXUIElementCopyElementAtPosition(systemWide, Float(displayBounds.minX + 5), Float(displayBounds.minY + 5), &hit) == .success,
-                      let hit, AXUIElementGetPid(hit, &pid) == .success
+                guard
+                    AXUIElementCopyElementAtPosition(
+                        systemWide, Float(displayBounds.minX + 5), Float(displayBounds.minY + 5), &hit) == .success,
+                    let hit, AXUIElementGetPid(hit, &pid) == .success
                 else {
                     continuation.resume(returning: [])
                     return
@@ -95,12 +97,12 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
 
     private static func frame(of element: AXUIElement) -> CGRect? {
         guard let positionValue: AXValue = attribute(element, kAXPositionAttribute),
-              let sizeValue: AXValue = attribute(element, kAXSizeAttribute)
+            let sizeValue: AXValue = attribute(element, kAXSizeAttribute)
         else { return nil }
         var position = CGPoint.zero
         var size = CGSize.zero
         guard AXValueGetValue(positionValue, .cgPoint, &position),
-              AXValueGetValue(sizeValue, .cgSize, &size)
+            AXValueGetValue(sizeValue, .cgSize, &size)
         else { return nil }
         return CGRect(origin: position, size: size)
     }

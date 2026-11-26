@@ -35,7 +35,8 @@ final class SettingsStore {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         if let data = defaults.data(forKey: Keys.configuration),
-           let decoded = try? JSONDecoder().decode(AppearanceConfiguration.self, from: data) {
+            let decoded = try? JSONDecoder().decode(AppearanceConfiguration.self, from: data)
+        {
             configuration = decoded
         } else {
             configuration = .default

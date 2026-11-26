@@ -91,10 +91,14 @@ final class OverlayController {
         let local = NotificationCenter.default
         let distributed = DistributedNotificationCenter.default()
 
-        func on(_ center: NotificationCenter, _ name: Notification.Name, _ handler: @escaping @MainActor @Sendable (pid_t?) -> Void) {
+        func on(
+            _ center: NotificationCenter, _ name: Notification.Name,
+            _ handler: @escaping @MainActor @Sendable (pid_t?) -> Void
+        ) {
             let token = center.addObserver(forName: name, object: nil, queue: .main) { note in
                 // Only the app's pid is needed; pull it out before hopping to the main actor.
-                let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+                let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?
+                    .processIdentifier
                 MainActor.assumeIsolated { handler(pid) }
             }
             observers.append((center, token))
@@ -145,13 +149,14 @@ final class OverlayController {
 
         // An app switch also brings back a menu bar that macOS took off screen after a
         // wallpaper change (seen on macOS 27.2.1), so re-layout as well.
-        workspaceKVO.append(NSWorkspace.shared.observe(\.menuBarOwningApplication) { [weak self] _, _ in
-            DispatchQueue.main.async {
-                self?.layout()
-                self?.layoutAfterSpaceAnimation()
-                self?.refreshApplicationMenu(retrying: true)
-            }
-        })
+        workspaceKVO.append(
+            NSWorkspace.shared.observe(\.menuBarOwningApplication) { [weak self] _, _ in
+                DispatchQueue.main.async {
+                    self?.layout()
+                    self?.layoutAfterSpaceAnimation()
+                    self?.refreshApplicationMenu(retrying: true)
+                }
+            })
     }
 
     /// Windows can appear or vanish shortly after a notification (the full-screen backdrop
@@ -224,7 +229,8 @@ final class OverlayController {
         log.debug("refresh app menu: needsRegions=\(self.needsRegions) trusted=\(MenuBarRegionReader.isTrusted)")
         guard needsRegions else { return }
         appMenuRetryTask?.cancel()
-        let delays: [Duration] = retrying ? [.zero, .milliseconds(150), .milliseconds(500), .milliseconds(1500)] : [.zero]
+        let delays: [Duration] =
+            retrying ? [.zero, .milliseconds(150), .milliseconds(500), .milliseconds(1500)] : [.zero]
         appMenuRetryTask = Task { [weak self] in
             for delay in delays {
                 if delay > .zero { try? await Task.sleep(for: delay) }
@@ -253,7 +259,8 @@ final class OverlayController {
         let pids = NSWorkspace.shared.runningApplications.map(\.processIdentifier)
         Task { [weak self] in
             guard let self else { return }
-            let frames = await regionReader.statusItemFrames(runningPIDs: pids, fullScan: fullScan, alsoCheck: alsoCheck)
+            let frames = await regionReader.statusItemFrames(
+                runningPIDs: pids, fullScan: fullScan, alsoCheck: alsoCheck)
             let extent = MenuBarRegions.statusItemsExtent(frames: frames, displays: displayInfos())
             log.debug("status items: \(frames.count) frames, extent \(String(describing: extent), privacy: .public)")
             guard needsRegions, regions.statusItemsExtent != extent else { return }
@@ -302,7 +309,9 @@ final class OverlayController {
         // the system bar slides in and out on its own, as Ice does. macOS 27 reports no
         // change when the hidden bar is revealed by the pointer.
         guard isRunning, isActive, !SystemMenuBar.autoHides else {
-            log.debug("layout: inactive running=\(self.isRunning) active=\(self.isActive) autoHides=\(SystemMenuBar.autoHides)")
+            log.debug(
+                "layout: inactive running=\(self.isRunning) active=\(self.isActive) autoHides=\(SystemMenuBar.autoHides)"
+            )
             removeAllPanels()
             wallpapers.stopWatching()
             return
@@ -321,9 +330,10 @@ final class OverlayController {
         // macOS takes the menu bar off screen while it rebuilds it (seen after a wallpaper
         // change and after turning auto-hide off, from 10 s to several minutes) and posts
         // nothing when it is back. Look again, with growing intervals, until it returns.
-        let displaysWithBar = Set(NSScreen.screens.filter { screen in
-            bars.contains { CGDisplayBounds(screen.displayID).intersects($0) }
-        }.map(\.displayID))
+        let displaysWithBar = Set(
+            NSScreen.screens.filter { screen in
+                bars.contains { CGDisplayBounds(screen.displayID).intersects($0) }
+            }.map(\.displayID))
         if displaysWithBar.count < expectedMenuBarCount {
             watchForMissingMenuBar()
         } else {
@@ -350,7 +360,9 @@ final class OverlayController {
             if placement == .aboveMenuBar {
                 // Without the picture the shape cannot be cut out; fall back to the standard bar.
                 if wallpaper == nil {
-                    log.debug("layout: desktop picture for display \(id) not available yet or failed; showing the standard menu bar")
+                    log.debug(
+                        "layout: desktop picture for display \(id) not available yet or failed; showing the standard menu bar"
+                    )
                     hidePanel(for: id)
                     continue
                 }
@@ -359,7 +371,8 @@ final class OverlayController {
             // macOS draws menu titles light over a dark desktop picture and dark over a light
             // one; the status item's appearance does not follow (it stayed VibrantLight over
             // black on macOS 27.2.1). Judge from the picture's brightness under the bar.
-            let isDark = wallpapers.luminance(for: screen, bar: bar).map { $0 < Self.darkLuminanceThreshold } ?? menuBarIsDark
+            let isDark =
+                wallpapers.luminance(for: screen, bar: bar).map { $0 < Self.darkLuminanceThreshold } ?? menuBarIsDark
             if placement == .belowMenuBar { wallpaper = nil }
 
             let barInView = CGRect(x: 0, y: OverlayPanel.shadowMargin, width: bar.width, height: bar.height)
@@ -379,7 +392,9 @@ final class OverlayController {
             )
 
             let panel = panels[id] ?? makePanel(for: id)
-            let frame = NSRect(x: bar.minX, y: bar.minY - OverlayPanel.shadowMargin, width: bar.width, height: bar.height + OverlayPanel.shadowMargin)
+            let frame = NSRect(
+                x: bar.minX, y: bar.minY - OverlayPanel.shadowMargin, width: bar.width,
+                height: bar.height + OverlayPanel.shadowMargin)
             if panel.frame != frame { panel.setFrame(frame, display: false) }
             if panel.level != placement.windowLevel { panel.level = placement.windowLevel }
             panel.overlayView.model = model
@@ -462,7 +477,10 @@ private final class GlobalDefaultsObserver: NSObject {
         handler = nil
     }
 
-    override nonisolated func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
+    override nonisolated func observeValue(
+        forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?,
+        context: UnsafeMutableRawPointer?
+    ) {
         DispatchQueue.main.async { [weak self] in
             self?.handler?()
         }

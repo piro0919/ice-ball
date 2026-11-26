@@ -1,5 +1,4 @@
 build/
-DerivedData/
-xcuserdata/
-*.xcuserstate
+Vendor/
+dist/
 .DS_Store

@@ -30,7 +30,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private func makeWindow() -> NSWindow {
         let view = SettingsView(settings: settings, permissions: permissions, previewMetrics: previewMetrics)
         let window = NSWindow(contentViewController: NSHostingController(rootView: view))
-        window.title = "Ice Ball 設定"
+        window.title = L.settingsTitle
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
         window.delegate = self

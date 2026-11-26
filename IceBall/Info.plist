@@ -3,9 +3,18 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>ja</string>
+	<string>en</string>
+	<!-- Strings live in a Swift table, so there is no .lproj. Declaring the languages makes
+	     system-provided parts (the Sparkle window, color panels) follow the user's language. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ja</string>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>IceBall</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>io.kkweb.IceBall</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -16,17 +25,29 @@
 	<string>Ice Ball</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<!-- Both versions are overwritten by build.sh from ICEBALL_VERSION. -->
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>0.0.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>0.0.0</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
-	<key>NSHumanReadableCopyright</key>
-	<string></string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<!-- Sparkle. One quiet check at launch; a window appears only when an update exists.
+	     Both switches are false so that Sparkle does not ask on first launch. -->
+	<key>SUFeedURL</key>
+	<string>https://github.com/piro0919/ice-ball/releases/latest/download/appcast.xml</string>
+	<!-- The private half is in the login keychain, shared with the other kkweb Mac apps. -->
+	<key>SUPublicEDKey</key>
+	<string>qYQq1iewXYNDhhkJJak1nXUXmFkZ0jAF6Gr+pjB4Bxo=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
 </dict>
 </plist>

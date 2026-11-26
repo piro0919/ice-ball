@@ -15,11 +15,11 @@ nonisolated enum SystemMenuBar {
         let menuLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
         return windows.compactMap { info in
             guard info[kCGWindowLayer as String] as? Int == menuLevel,
-                  info[kCGWindowOwnerName as String] as? String == "Window Server",
-                  info[kCGWindowName as String] as? String == "Menubar",
-                  let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
-                  let bounds = CGRect(dictionaryRepresentation: boundsDict),
-                  bounds.width > 0, bounds.height > 0
+                info[kCGWindowOwnerName as String] as? String == "Window Server",
+                info[kCGWindowName as String] as? String == "Menubar",
+                let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
+                let bounds = CGRect(dictionaryRepresentation: boundsDict),
+                bounds.width > 0, bounds.height > 0
             else { return nil }
             return bounds
         }
@@ -42,9 +42,9 @@ nonisolated enum SystemMenuBar {
         var result = Set<CGDirectDisplayID>()
         for info in windows {
             guard info[kCGWindowOwnerName as String] as? String == "WindowManager",
-                  info[kCGWindowName as String] as? String == "Fullscreen Backdrop",
-                  let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
-                  let bounds = CGRect(dictionaryRepresentation: boundsDict)
+                info[kCGWindowName as String] as? String == "Fullscreen Backdrop",
+                let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
+                let bounds = CGRect(dictionaryRepresentation: boundsDict)
             else { continue }
             for (id, displayBounds) in displays where displayBounds.intersects(bounds) {
                 result.insert(id)

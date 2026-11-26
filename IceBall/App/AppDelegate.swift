@@ -13,8 +13,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installStatusItem()
         overlay.start()
         updateMenuBarAppearance()
+        Updater.shared.checkQuietly()
         #if DEBUG
-        DebugSnapshot.scheduleIfRequested()
+            DebugSnapshot.scheduleIfRequested()
         #endif
     }
 
@@ -38,15 +39,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let menu = NSMenu()
         menu.delegate = self
-        let enabled = NSMenuItem(title: "外観の変更を有効にする", action: #selector(toggleEnabled), keyEquivalent: "")
+        let enabled = NSMenuItem(title: L.enableAppearance, action: #selector(toggleEnabled), keyEquivalent: "")
         enabled.target = self
         menu.addItem(enabled)
         menu.addItem(.separator())
-        let settingsItem = NSMenuItem(title: "設定…", action: #selector(openSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: L.settings, action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
+        let updatesItem = NSMenuItem(title: L.checkForUpdates, action: #selector(checkForUpdates), keyEquivalent: "")
+        updatesItem.target = self
+        menu.addItem(updatesItem)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Ice Ball を終了", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: L.quit, action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
 
         statusItem = item
@@ -55,9 +59,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // The status item's button takes the menu bar's light/dark appearance, which on
         // macOS 26+ depends on the desktop picture, not only on the system setting.
         if let button = item.button {
-            statusItemObservations.append(button.observe(\.effectiveAppearance) { [weak self] _, _ in
-                DispatchQueue.main.async { self?.updateMenuBarAppearance() }
-            })
+            statusItemObservations.append(
+                button.observe(\.effectiveAppearance) { [weak self] _, _ in
+                    DispatchQueue.main.async { self?.updateMenuBarAppearance() }
+                })
         }
     }
 
@@ -72,6 +77,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleEnabled() {
         settings.isEnabled.toggle()
+    }
+
+    @objc private func checkForUpdates() {
+        Updater.shared.checkNow()
     }
 
     @objc private func openSettings() {
