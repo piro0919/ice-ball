@@ -24,7 +24,9 @@ SPARKLE_SHA256="015336b601493e05c237964954bff6191370003d94edefe663724c88840d73cc
 # An ad-hoc signature changes with every build, and macOS then drops the Accessibility
 # permission. Use the local certificate when it exists. CI has none and falls back to ad-hoc.
 SIGN_IDENTITY=${SIGN_IDENTITY:-Okigae Dev}
-if ! security find-identity -v -p codesigning | grep -qF "\"${SIGN_IDENTITY}\""; then
+# Read the list into a variable first: with pipefail, `grep -q` exiting early can make the pipe fail.
+IDENTITIES=$(security find-identity -v -p codesigning)
+if [[ $IDENTITIES != *"\"${SIGN_IDENTITY}\""* ]]; then
   if [[ ${ICEBALL_REQUIRE_IDENTITY:-0} == 1 ]]; then
     echo "error: certificate \"${SIGN_IDENTITY}\" not found; an ad-hoc build cannot be released" >&2
     exit 1

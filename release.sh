@@ -57,7 +57,8 @@ BUILT_VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$
 codesign --verify --deep --strict "$APP" || fail "the app's signature is broken"
 # An ad-hoc build would drop the user's permissions on every update.
 SIGN_IDENTITY=${SIGN_IDENTITY:-Okigae Dev}
-codesign -dvv "$APP" 2>&1 | grep -qx "Authority=${SIGN_IDENTITY}" || fail "not signed with \"${SIGN_IDENTITY}\""
+SIGNATURE=$(codesign -dvv "$APP" 2>&1)
+[[ $'\n'$SIGNATURE$'\n' == *$'\n'"Authority=${SIGN_IDENTITY}"$'\n'* ]] || fail "not signed with \"${SIGN_IDENTITY}\""
 
 rm -rf dist
 # generate_appcast stops when it sees two archives of one version, so the zip and the DMG
