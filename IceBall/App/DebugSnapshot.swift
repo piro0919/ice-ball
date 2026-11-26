@@ -8,7 +8,7 @@
     enum DebugSnapshot {
         static func scheduleIfRequested() {
             let arguments = CommandLine.arguments
-            // `--request-accessibility` shows the system prompt without opening the settings window.
+            // `--request-accessibility` also shows the system prompt for Accessibility.
             if arguments.contains("--request-accessibility") {
                 _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
             }
