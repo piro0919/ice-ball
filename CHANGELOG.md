@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+- Split: when you switch apps, the left shape grows or shrinks to the new app's menus in 0.25 s instead of jumping. With Reduce motion on, it still jumps
+- Split no longer falls back to one shape for a moment right after an app switch
+
 ## [0.1.1]
 
 - Opening the app shows its settings window; at login it starts with the window closed

@@ -47,6 +47,64 @@ do {
         "margins larger than the bar draw nothing")
 }
 
+print("ShapeAnimation")
+do {
+    expect(ShapeAnimation.easeOut(0) == 0 && ShapeAnimation.easeOut(1) == 1, "easing starts at 0 and ends at 1")
+    expect(ShapeAnimation.easeOut(0.5) > 0.5, "easing is ahead of linear: it slows down at the end")
+    let samples = stride(from: 0.0, through: 1.0, by: 0.05).map(ShapeAnimation.easeOut)
+    expect(zip(samples, samples.dropFirst()).allSatisfy { $0 <= $1 } && samples.allSatisfy { $0 <= 1 },
+        "easing never goes back or past the end (no overshoot)")
+    expect(ShapeAnimation.easeOut(-1) == 0 && ShapeAnimation.easeOut(2) == 1, "easing clamps outside 0…1")
+
+    let from = [CGRect(x: 6, y: 3, width: 447, height: 33), CGRect(x: 1053, y: 3, width: 741, height: 33)]
+    let to = [CGRect(x: 6, y: 3, width: 300, height: 33), CGRect(x: 1053, y: 3, width: 741, height: 33)]
+    expect(ShapeAnimation.interpolate(from: from, to: to, progress: 0) == from, "progress 0 is the old frames")
+    expect(ShapeAnimation.interpolate(from: from, to: to, progress: 1) == to, "progress 1 is the new frames")
+    let middle = ShapeAnimation.interpolate(from: from, to: to, progress: 0.5)
+    expect(middle[0].width < 447 && middle[0].width > 300 && middle[0].minX == 6, "the left shape grows or shrinks from its left edge")
+    expect(middle[1] == to[1], "an unchanged shape stays put")
+    expect(ShapeAnimation.interpolate(from: [from[0]], to: to, progress: 0.5) == to, "a different count jumps")
+
+    let viewBounds = CGRect(x: 0, y: 0, width: 1800, height: 55)
+    let dirty = ShapeAnimation.dirtyRect(from: from, to: to, in: viewBounds, cornerRadius: 20, reach: 5)
+    expect(dirty == CGRect(x: 306 - 16.5 - 5, y: 0, width: 453 - 306 + 16.5 + 10, height: 55),
+        "only the moving end of the left shape is redrawn, with its corner and shadow")
+    expect(ShapeAnimation.dirtyRect(from: from, to: from, in: viewBounds, cornerRadius: 20, reach: 5) == .zero,
+        "nothing moved, nothing redrawn")
+    expect(ShapeAnimation.dirtyRect(from: [from[0]], to: to, in: viewBounds, cornerRadius: 20, reach: 5) == viewBounds,
+        "a different count redraws everything")
+
+    var config = AppearanceConfiguration.default
+    config.shape = .split
+    let model = OverlayDrawModel(
+        bar: bar, shapes: from, configuration: config, isDark: false, placement: .belowMenuBar, wallpaper: nil)
+    var moved = model
+    moved.shapes = to
+    expect(ShapeAnimation.shouldAnimate(from: model, to: moved), "a change of the shapes alone moves them")
+    expect(!ShapeAnimation.shouldAnimate(from: model, to: model), "no change, no movement")
+    var resized = moved
+    resized.bar.size.width = 1352
+    expect(!ShapeAnimation.shouldAnimate(from: model, to: resized), "a resolution change jumps")
+    var restyled = moved
+    restyled.configuration.horizontalMargin += 2
+    expect(!ShapeAnimation.shouldAnimate(from: model, to: restyled), "a settings change jumps")
+    var fallback = moved
+    fallback.shapes = [CGRect(x: 6, y: 3, width: 1788, height: 33)]
+    expect(!ShapeAnimation.shouldAnimate(from: model, to: fallback), "two shapes becoming one jumps")
+
+    let view = OverlayView(frame: NSRect(x: 0, y: 0, width: 1800, height: 55))
+    view.model = model
+    expect(view.displayedShapes == nil, "the first model is drawn as it is")
+    view.model = moved
+    if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+        expect(view.displayedShapes == nil, "with Reduce motion on, the shapes jump")
+    } else {
+        expect(view.displayedShapes == from, "the view starts moving from the old frames")
+    }
+    view.model = restyled
+    expect(view.displayedShapes == nil, "a settings change stops the movement and jumps")
+}
+
 print("MenuBarRegions")
 do {
     // Values measured on the development machine (macOS 27.2.1, 14-inch notch display + Sidecar).

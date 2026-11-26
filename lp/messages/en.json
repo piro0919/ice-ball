@@ -63,7 +63,7 @@
     },
     {
       "title": "Every display, every Space.",
-      "body": "Each display's menu bar gets its own shape. With Split, the left shape is measured on each display, because each display can show a different app's menus."
+      "body": "Each display's menu bar gets its own shape. With Split, the left shape is measured on each display, because each display can show a different app's menus. When you switch apps, it grows or shrinks to the new menus instead of jumping."
     },
     {
       "title": "Gone when the menu bar is.",

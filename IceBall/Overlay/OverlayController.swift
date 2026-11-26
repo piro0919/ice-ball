@@ -232,21 +232,28 @@ final class OverlayController {
         let delays: [Duration] =
             retrying ? [.zero, .milliseconds(150), .milliseconds(500), .milliseconds(1500)] : [.zero]
         appMenuRetryTask = Task { [weak self] in
-            for delay in delays {
+            for (index, delay) in delays.enumerated() {
                 if delay > .zero { try? await Task.sleep(for: delay) }
                 guard !Task.isCancelled, let self else { return }
-                await self.measureApplicationMenu()
+                await self.measureApplicationMenu(keepingMissing: index < delays.count - 1)
             }
         }
     }
 
     /// Each display's menu bar can show a different app (its frontmost window's app), so
     /// every display is measured on its own.
-    private func measureApplicationMenu() async {
+    ///
+    /// Right after an app switch the new app's menus often read as nothing for a moment
+    /// (seen for about 0.2 s on macOS 27.2.1), which made Split fall back to one shape and
+    /// back. With `keepingMissing`, a display that reads as nothing keeps its last width;
+    /// the last retry accepts nothing.
+    private func measureApplicationMenu(keepingMissing: Bool = false) async {
         var extents: [CGDirectDisplayID: CGFloat] = [:]
         for display in displayInfos() where display.hasMenuBar {
             let frames = await regionReader.applicationMenuFrames(atMenuBarOf: display.bounds)
-            extents[display.displayID] = MenuBarRegions.applicationMenuExtent(frames: frames, on: display)
+            extents[display.displayID] =
+                MenuBarRegions.applicationMenuExtent(frames: frames, on: display)
+                ?? (keepingMissing ? regions.applicationMenuExtents[display.displayID] : nil)
         }
         log.debug("app menu extents: \(String(describing: extents), privacy: .public)")
         guard needsRegions, regions.applicationMenuExtents != extents else { return }

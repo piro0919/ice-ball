@@ -15,8 +15,60 @@ struct OverlayDrawModel: Equatable {
 final class OverlayView: NSView {
     var model: OverlayDrawModel? {
         didSet {
-            if model != oldValue { needsDisplay = true }
+            guard model != oldValue else { return }
+            if let oldValue, let model, ShapeAnimation.shouldAnimate(from: oldValue, to: model),
+                !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            {
+                // A new target while moving starts from where the shapes are now.
+                startAnimation(from: displayedShapes ?? oldValue.shapes, to: model.shapes)
+            } else {
+                stopAnimation()
+            }
+            needsDisplay = true
         }
+    }
+
+    /// The frames being drawn while the shapes move; nil when they are at `model.shapes`.
+    private(set) var displayedShapes: [CGRect]?
+    private var animationFrom: [CGRect] = []
+    private var animationStart: CFTimeInterval = 0
+    private var displayLink: CADisplayLink?
+
+    private func startAnimation(from: [CGRect], to: [CGRect]) {
+        animationFrom = from
+        animationStart = CACurrentMediaTime()
+        displayedShapes = from
+        if displayLink == nil {
+            let link = displayLink(target: self, selector: #selector(step))
+            // 60 frames a second: each frame is a commit to the window server, and 120 on a
+            // ProMotion display doubled the CPU time for little visible gain in 0.25 s.
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
+            link.add(to: .main, forMode: .common)
+            displayLink = link
+        }
+    }
+
+    private func stopAnimation() {
+        displayLink?.invalidate()
+        displayLink = nil
+        displayedShapes = nil
+    }
+
+    @objc private func step(_ link: CADisplayLink) {
+        guard let model else { return stopAnimation() }
+        let before = displayedShapes ?? model.shapes
+        let progress = (CACurrentMediaTime() - animationStart) / ShapeAnimation.duration
+        if progress >= 1 {
+            stopAnimation()
+        } else {
+            displayedShapes = ShapeAnimation.interpolate(from: animationFrom, to: model.shapes, progress: progress)
+        }
+        let config = model.configuration
+        let reach = (config.shadowEnabled ? config.shadowRadius * 3 + 2 : 0) + config.borderWidth + 2
+        setNeedsDisplay(
+            ShapeAnimation.dirtyRect(
+                from: before, to: displayedShapes ?? model.shapes, in: bounds,
+                cornerRadius: config.cornerRadius, reach: reach))
     }
 
     override var isFlipped: Bool { false }
@@ -26,7 +78,7 @@ final class OverlayView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let model, !model.shapes.isEmpty, let context = NSGraphicsContext.current?.cgContext else { return }
         let config = model.configuration
-        let shape = ShapeLayout.path(for: model.shapes, cornerRadius: config.cornerRadius)
+        let shape = ShapeLayout.path(for: displayedShapes ?? model.shapes, cornerRadius: config.cornerRadius)
 
         // Outside of the shape: paint the desktop picture over the system menu bar
         // background so the bar appears to end at the shape's edge.

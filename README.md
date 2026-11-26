@@ -70,7 +70,8 @@ IceBall/
   Settings/   AppearanceConfiguration (Codable values), SettingsStore (@Observable, UserDefaults, login item)
   MenuBar/    SystemMenuBar (window list facts), MenuBarRegionReader (Accessibility), MenuBarRegions (pure math)
   Overlay/    OverlayController (events → layout), OverlayPanel, OverlayView (drawing),
-              ShapeLayout (pure geometry, shared with the preview), WallpaperProvider
+              ShapeLayout (pure geometry, shared with the preview), ShapeAnimation (easing and redraw area),
+              WallpaperProvider
   UI/         SettingsWindowController, SettingsView, AppearancePreview (SwiftUI), Localization (Japanese and English)
 Tests/        main.swift — dependency-free checks run by test.sh
 Tools/        make-icon.py — writes Resources/AppIcon.icns and assets/AppIcon.png from assets/icon-source.png (prompt in docs/art-prompt.md)
@@ -83,7 +84,9 @@ How it works:
    - Transparent: the overlay panel sits one level *below* the menu bar window, so the system keeps drawing menus and status items on top of the shape. Any fill opacity works.
    - Background shown: the panel sits one level *above* the menu bar window, as Ice does. The area outside the shape is painted with the desktop picture, and the fill opacity is capped at 35 % because it covers the menu titles.
 3. **Shapes.** `ShapeLayout` turns the configuration and the measured extents into rounded rectangles. Split uses two: from the left edge to the end of the app menus, and from the first status item to the right edge. When either is unknown or they would touch, Split falls back to one shape.
+   - When only the shapes' frames change (in practice the left shape after an app switch, or the right one when a status item changes width), they move to the new frames in 0.25 s with an ease-out curve, without overshoot, at up to 60 frames a second. Each frame redraws only the strip around the moving end. A change of the settings, the display size or the number of shapes jumps, and so does everything while "Reduce motion" is on in System Settings › Accessibility › Display.
 4. **Regions.** Each display's menu bar can show a different app (the app of that display's frontmost window). `MenuBarRegionReader` hit-tests the left end of each display's menu bar with Accessibility, reads that app's `AXMenuBar` children, and measures them on that display. Status items come from each app's `AXExtrasMenuBar`; they are reported for the active display only and are laid out from the right edge the same way everywhere, so one extent serves all displays. All calls run on a background queue with a 0.1 s timeout per app.
+   - Right after an app switch the new app's menus read as nothing for about 0.2 s (macOS 27.2.1). While the retries after a switch are running, a display that reads as nothing keeps its last width; only the last retry, 1.5 s after the switch, accepts nothing.
 5. **Events.** Display changes, Space changes (which includes entering and leaving full screen), wake, app launch/quit, the menu-bar-owning app changing, light/dark changes, the wallpaper store file changing, and the global defaults `_HIHideMenuBar` / `SLSMenuBarUseBlurredAppearance` changing all trigger a re-layout. A panel is redrawn only when its draw model changes.
    - After a wallpaper change or turning auto-hide off, macOS takes the menu bar off screen while it rebuilds it and posts nothing when it is back (observed from about 10 s up to several minutes, ending at the next app switch). While a display's menu bar is missing, Ice Ball looks again at growing intervals (1 s up to 60 s, about 5 minutes in all) and also on every app switch.
 6. **Quit / disable.** The system menu bar is never modified; closing the panels restores the standard look.
@@ -132,6 +135,8 @@ Measured on the development machine with the release build:
 - Rounded, idle for 60 s: 0.01 s of CPU time, 15 MB physical footprint.
 - Split's work, measured with the same Accessibility calls in a separate program: asking all ~160 processes once takes 1.7 s of wall time but 0.02 s of CPU time; asking the 16 processes that own status items 10 times takes 0.02 s of CPU time. Ice Ball does the small ask every 5 s and the full one every 60 s, only while Split is selected. The cost on the processes being asked was not measured.
 
+Moving the shapes after an app switch, measured as CPU time over 20 switches between Claude and Calculator (Split, shadow on, background shown, notched built-in display): 0.81 s with the movement, against 0.29 s for 0.1.1, so about 26 ms more per switch. Redrawing the whole bar on every frame at 120 frames a second took 2.0 s; redrawing only the moving strip and capping at 60 frames a second brought it to 0.81 s.
+
 There are no timers in Default and Rounded. Split's 5-second timer exists because macOS posts nothing when a status item changes width.
 
 ## Known limitations
@@ -153,7 +158,7 @@ There are no timers in Default and Rounded. Split's 5-second timer exists becaus
 
 Checked:
 
-- Builds with `swiftc` (Swift 6.4.2, macOS 27.2 SDK, deployment target 26.0) with no warnings; `./test.sh` passes (35 checks).
+- Builds with `swiftc` (Swift 6.4.2, macOS 27.2 SDK, deployment target 26.0) with no warnings; `./test.sh` passes (57 checks).
 - Offscreen rendering of Split/Rounded, light/dark, below/above placement (`build/snapshots`).
 - On the real machine: one panel per display with a menu bar (notched built-in display and a Sidecar display), at the right frames and window level; no panels when the desktop picture is unavailable in "background shown" mode; CPU and memory above.
 - Accessibility frames of app menus and status items, and the private window list no longer listing status items, on macOS 27.2.1.
@@ -171,6 +176,7 @@ Checked:
 - Launch at login: turning the switch on registered the app (`sfltool dumpbtm`: enabled, allowed); turning it off removed it.
 - Launch and a second copy: `open` on the built app showed the settings window (window list, layer 0). Opening a copy from another folder left one process; with the window closed beforehand, the running instance showed it again.
 - Switching desktops: with a second desktop added on the built-in display, Control-→ and Control-← kept the overlay in place on both desktops (snapshots of each; the second desktop was removed afterwards).
+- Shape movement after an app switch, from screen recordings of the built-in display (Split, background shown): Calculator → Claude moved the left shape's end from 648 to 888 px over about 0.2 s, fast at first and slowing to a stop; Claude → Calculator moved it back the same way. Before the change, Claude → Calculator showed one full-width shape for about 0.3 s first (seen with 0.1.1 too), from the empty measurement described under "Regions"; after it, no such frame.
 - Full screen and the space switch it causes: putting a Finder window into full screen on the built-in display hid only that display's overlay (the Sidecar one stayed), and leaving full screen showed it again. Checked from the window list's on-screen flags.
 
 Not checked:
