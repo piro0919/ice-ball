@@ -6,11 +6,21 @@ Ice Ball is an independent project. It is not affiliated with or endorsed by [Ic
 
 Target: Apple silicon, macOS 26 or later. Developed and checked on macOS 27.2.1.
 
+## Install
+
+Download `IceBall-<version>.dmg` from [Releases](https://github.com/piro0919/ice-ball/releases/latest) and drag Ice Ball into Applications, or use Homebrew:
+
+```bash
+brew install --cask piro0919/tap/ice-ball
+```
+
+The app is signed with a personal certificate, not by a registered Apple developer, so macOS blocks the first launch. Open System Settings › Privacy & Security and click **Open Anyway**; after that it opens normally.
+
+Ice Ball checks for a new version once at launch (Sparkle, from this repository's GitHub Releases) and asks before installing it. **Check for Updates…** in its menu checks on demand.
+
 ## Build and run
 
-With Xcode: open `IceBall.xcodeproj` and run the `IceBall` scheme.
-
-Without Xcode (Command Line Tools are enough):
+Xcode is not needed; the Command Line Tools are enough. `build.sh` fetches [Sparkle](https://sparkle-project.org) into `Vendor/` (checked against its SHA-256) the first time.
 
 ```bash
 ./build.sh            # release build → build/release/IceBall.app
@@ -42,7 +52,7 @@ The app has no Dock icon. Open the settings from its menu bar icon, or by launch
 
 Default and Rounded on a transparent menu bar (the macOS 26 default) need no permission. The settings window explains which permission is missing and opens the right pane of System Settings.
 
-By default the build is ad-hoc signed, and macOS records the Accessibility grant against that exact binary, so every rebuild needs it granted again (seen in the `tccd` log as "Failed to match existing code requirement"). Signing with a certificate keeps Screen Recording across rebuilds:
+`build.sh` signs with the certificate named by `SIGN_IDENTITY` (default `Okigae Dev`, the developer's local certificate) and falls back to an ad-hoc signature when it is missing. With an ad-hoc signature macOS records the Accessibility grant against that exact binary, so every rebuild needs it granted again (seen in the `tccd` log as "Failed to match existing code requirement"). Signing with a certificate keeps Screen Recording across rebuilds:
 
 ```bash
 SIGN_IDENTITY="Your Certificate Name" ./build.sh debug
@@ -54,13 +64,14 @@ Even then, an Accessibility grant made while an ad-hoc build was running stays t
 
 ```
 IceBall/
-  App/        main.swift, AppDelegate — status item, lifecycle, menu bar appearance/visibility signals
+  App/        main.swift, AppDelegate — status item, lifecycle, menu bar appearance/visibility signals; Updater (Sparkle)
   Settings/   AppearanceConfiguration (Codable values), SettingsStore (@Observable, UserDefaults, login item)
   MenuBar/    SystemMenuBar (window list facts), MenuBarRegionReader (Accessibility), MenuBarRegions (pure math)
   Overlay/    OverlayController (events → layout), OverlayPanel, OverlayView (drawing),
               ShapeLayout (pure geometry, shared with the preview), WallpaperProvider
-  UI/         SettingsWindowController, SettingsView, AppearancePreview (SwiftUI)
+  UI/         SettingsWindowController, SettingsView, AppearancePreview (SwiftUI), Localization (Japanese and English)
 Tests/        main.swift — dependency-free checks run by test.sh
+Tools/        make-icon.py — writes Resources/AppIcon.icns and assets/AppIcon.png from assets/icon-source.png (prompt in docs/art-prompt.md)
 ```
 
 How it works:
@@ -74,6 +85,18 @@ How it works:
 5. **Events.** Display changes, Space changes (which includes entering and leaving full screen), wake, app launch/quit, the menu-bar-owning app changing, light/dark changes, the wallpaper store file changing, and the global defaults `_HIHideMenuBar` / `SLSMenuBarUseBlurredAppearance` changing all trigger a re-layout. A panel is redrawn only when its draw model changes.
    - After a wallpaper change or turning auto-hide off, macOS takes the menu bar off screen while it rebuilds it and posts nothing when it is back (observed from about 10 s up to several minutes, ending at the next app switch). While a display's menu bar is missing, Ice Ball looks again at growing intervals (1 s up to 60 s, about 5 minutes in all) and also on every app switch.
 6. **Quit / disable.** The system menu bar is never modified; closing the panels restores the standard look.
+
+## Privacy
+
+Ice Ball reads the menu bar's position from the window list, the frames of menus and status items through Accessibility (Split only), and the desktop picture. None of it is stored or sent anywhere. The only network request is the update check at launch, which fetches `appcast.xml` from GitHub Releases. There is no analytics or crash reporting.
+
+## Releasing
+
+```bash
+./release.sh 0.1.1
+```
+
+The script checks that the tree is clean and pushed, takes the release notes from the version's section of `CHANGELOG.md`, runs the tests, builds and signs the app, makes the DMG and the update zip, signs `appcast.xml` with the Sparkle key in the login keychain, and creates the GitHub release. The Homebrew cask in `piro0919/homebrew-tap` is updated separately.
 
 ## Findings from Ice
 
@@ -140,7 +163,6 @@ Checked:
 
 Not checked:
 
-- Opening and building `IceBall.xcodeproj` in Xcode (Xcode is not installed on the development machine; the project file parses and its references resolve).
 - How the overlay looks with a transparent menu bar (below placement): this machine has the menu bar background turned on.
 - Plugging or unplugging a display (a resolution change, which goes through the same notification, was checked).
 - A status item appearing or disappearing: a test app's new status item was not shown by macOS at all (Accessibility returned no value for it), and quitting one of the machine's own status item apps was not done.
