@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 // A dependency-free test runner: `./test.sh`. Checks the pure geometry and renders the
 // overlay view offscreen to PNG files for visual inspection.
@@ -224,6 +225,31 @@ if let rep = render(
     expect(
         alpha(rep, x: 200, yFromTop: 20) < 0.5,
         "above the menu bar, the fill opacity is capped so menu text stays readable")
+}
+
+print("AppearancePreview")
+do {
+    // Split must show two shapes in the first frame, before SwiftUI has measured anything.
+    let metrics = PreviewMetrics()
+    let estimated = (metrics.menusWidth, metrics.statusWidth)
+    var config = AppearanceConfiguration.default
+    config.shape = .split
+    let previewBar = CGRect(x: 0, y: 8, width: 460, height: 30)
+    let firstFrame = ShapeLayout.rects(
+        for: config, in: previewBar,
+        leftExtent: estimated.0 > 0 ? 16 + estimated.0 : nil,
+        rightExtent: estimated.1 > 0 ? estimated.1 + 16 : nil)
+    expect(firstFrame.count == 2, "the preview's first frame already splits")
+
+    let host = NSHostingView(
+        rootView: AppearancePreview(configuration: config, metrics: metrics).frame(width: 460, height: 76))
+    host.frame = CGRect(x: 0, y: 0, width: 460, height: 76)
+    host.layoutSubtreeIfNeeded()
+    RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+    expect(
+        abs(metrics.menusWidth - estimated.0) <= 2 && abs(metrics.statusWidth - estimated.1) <= 2,
+        "estimated widths match the laid-out ones (menus \(estimated.0) vs \(metrics.menusWidth), status \(estimated.1) vs \(metrics.statusWidth))"
+    )
 }
 
 print("Snapshots written to \(outputDirectory.path)")

@@ -13,8 +13,8 @@ struct AppearancePreview: View {
 
     private let barHeight: CGFloat = 30
     private let contentInset: CGFloat = 16
-    private let menuTitles = L.previewMenus
-    private let statusSymbols = ["wifi", "battery.75percent", "magnifyingglass", "switch.2"]
+    private let menuTitles = PreviewMetrics.menuTitles
+    private let statusSymbols = PreviewMetrics.statusSymbols
 
     var body: some View {
         GeometryReader { proxy in
@@ -61,7 +61,7 @@ struct AppearancePreview: View {
                 // Text is kept on one line (SwiftUI would otherwise wrap it when space runs short).
                 // The spacing fits everything inside the shape at the settings window's width (460 pt).
                 HStack(spacing: 0) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: PreviewMetrics.menuSpacing) {
                         Image(systemName: "apple.logo")
                         ForEach(menuTitles, id: \.self) {
                             Text($0).fontWeight($0 == "Finder" ? .bold : .regular).fixedSize()
@@ -73,9 +73,9 @@ struct AppearancePreview: View {
                         metrics.menusWidth = $0
                     }
                     Spacer(minLength: 12)
-                    HStack(spacing: 10) {
+                    HStack(spacing: PreviewMetrics.statusSpacing) {
                         ForEach(statusSymbols, id: \.self) { Image(systemName: $0) }
-                        Text("11:27").fixedSize()
+                        Text(PreviewMetrics.clock).fixedSize()
                     }
                     .onGeometryChange(for: CGFloat.self) {
                         $0.size.width
@@ -98,6 +98,38 @@ struct AppearancePreview: View {
 
 @Observable
 final class PreviewMetrics {
-    var menusWidth: CGFloat = 0
-    var statusWidth: CGFloat = 0
+    static let menuTitles = L.previewMenus
+    static let statusSymbols = ["wifi", "battery.75percent", "magnifyingglass", "switch.2"]
+    static let clock = "11:27"
+    static let menuSpacing: CGFloat = 12
+    static let statusSpacing: CGFloat = 10
+    static let fontSize: CGFloat = 12
+
+    /// Start from widths computed with AppKit so that Split shows two shapes in the very
+    /// first frame; the measured widths replace them after layout.
+    var menusWidth: CGFloat = PreviewMetrics.estimatedMenusWidth
+    var statusWidth: CGFloat = PreviewMetrics.estimatedStatusWidth
+
+    private static func textWidth(_ text: String, bold: Bool = false) -> CGFloat {
+        let font = NSFont.systemFont(ofSize: fontSize, weight: bold ? .bold : .regular)
+        return ceil((text as NSString).size(withAttributes: [.font: font]).width)
+    }
+
+    private static func symbolWidth(_ name: String) -> CGFloat {
+        let config = NSImage.SymbolConfiguration(pointSize: fontSize, weight: .regular)
+        guard
+            let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(config)
+        else { return fontSize }
+        return image.alignmentRect.width
+    }
+
+    static var estimatedMenusWidth: CGFloat {
+        let titles = menuTitles.reduce(0) { $0 + textWidth($1, bold: $1 == "Finder") }
+        return symbolWidth("apple.logo") + titles + menuSpacing * CGFloat(menuTitles.count)
+    }
+
+    static var estimatedStatusWidth: CGFloat {
+        let symbols = statusSymbols.reduce(0) { $0 + symbolWidth($1) }
+        return symbols + textWidth(clock) + statusSpacing * CGFloat(statusSymbols.count)
+    }
 }
