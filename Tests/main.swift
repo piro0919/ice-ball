@@ -52,7 +52,8 @@ do {
     expect(ShapeAnimation.easeOut(0) == 0 && ShapeAnimation.easeOut(1) == 1, "easing starts at 0 and ends at 1")
     expect(ShapeAnimation.easeOut(0.5) > 0.5, "easing is ahead of linear: it slows down at the end")
     let samples = stride(from: 0.0, through: 1.0, by: 0.05).map(ShapeAnimation.easeOut)
-    expect(zip(samples, samples.dropFirst()).allSatisfy { $0 <= $1 } && samples.allSatisfy { $0 <= 1 },
+    expect(
+        zip(samples, samples.dropFirst()).allSatisfy { $0 <= $1 } && samples.allSatisfy { $0 <= 1 },
         "easing never goes back or past the end (no overshoot)")
     expect(ShapeAnimation.easeOut(-1) == 0 && ShapeAnimation.easeOut(2) == 1, "easing clamps outside 0…1")
 
@@ -61,17 +62,22 @@ do {
     expect(ShapeAnimation.interpolate(from: from, to: to, progress: 0) == from, "progress 0 is the old frames")
     expect(ShapeAnimation.interpolate(from: from, to: to, progress: 1) == to, "progress 1 is the new frames")
     let middle = ShapeAnimation.interpolate(from: from, to: to, progress: 0.5)
-    expect(middle[0].width < 447 && middle[0].width > 300 && middle[0].minX == 6, "the left shape grows or shrinks from its left edge")
+    expect(
+        middle[0].width < 447 && middle[0].width > 300 && middle[0].minX == 6,
+        "the left shape grows or shrinks from its left edge")
     expect(middle[1] == to[1], "an unchanged shape stays put")
     expect(ShapeAnimation.interpolate(from: [from[0]], to: to, progress: 0.5) == to, "a different count jumps")
 
     let viewBounds = CGRect(x: 0, y: 0, width: 1800, height: 55)
     let dirty = ShapeAnimation.dirtyRect(from: from, to: to, in: viewBounds, cornerRadius: 20, reach: 5)
-    expect(dirty == CGRect(x: 306 - 16.5 - 5, y: 0, width: 453 - 306 + 16.5 + 10, height: 55),
+    expect(
+        dirty == CGRect(x: 306 - 16.5 - 5, y: 0, width: 453 - 306 + 16.5 + 10, height: 55),
         "only the moving end of the left shape is redrawn, with its corner and shadow")
-    expect(ShapeAnimation.dirtyRect(from: from, to: from, in: viewBounds, cornerRadius: 20, reach: 5) == .zero,
+    expect(
+        ShapeAnimation.dirtyRect(from: from, to: from, in: viewBounds, cornerRadius: 20, reach: 5) == .zero,
         "nothing moved, nothing redrawn")
-    expect(ShapeAnimation.dirtyRect(from: [from[0]], to: to, in: viewBounds, cornerRadius: 20, reach: 5) == viewBounds,
+    expect(
+        ShapeAnimation.dirtyRect(from: [from[0]], to: to, in: viewBounds, cornerRadius: 20, reach: 5) == viewBounds,
         "a different count redraws everything")
 
     var config = AppearanceConfiguration.default
@@ -233,7 +239,8 @@ do {
     plum.setFillColor(CGColor(srgbRed: 0.5, green: 0.2, blue: 0.4, alpha: 1))
     plum.fill(CGRect(x: 0, y: 0, width: 40, height: 8))
     let average = WallpaperProvider.averageColor(of: plum.makeImage()!)
-    expect(abs(average.red - 0.5) < 0.02 && abs(average.green - 0.2) < 0.02 && abs(average.blue - 0.4) < 0.02,
+    expect(
+        abs(average.red - 0.5) < 0.02 && abs(average.green - 0.2) < 0.02 && abs(average.blue - 0.4) < 0.02,
         "the average color of a solid picture is that color")
 }
 
@@ -242,24 +249,30 @@ do {
     func close(_ a: RGBAColor, _ b: RGBAColor) -> Bool {
         abs(a.red - b.red) < 0.005 && abs(a.green - b.green) < 0.005 && abs(a.blue - b.blue) < 0.005
     }
-    for c in [RGBAColor(red: 0.5, green: 0.2, blue: 0.4), RGBAColor(red: 0.1, green: 0.6, blue: 0.3),
-        RGBAColor(red: 0.2, green: 0.3, blue: 0.9), RGBAColor(red: 0.9, green: 0.8, blue: 0.1)] {
+    for c in [
+        RGBAColor(red: 0.5, green: 0.2, blue: 0.4), RGBAColor(red: 0.1, green: 0.6, blue: 0.3),
+        RGBAColor(red: 0.2, green: 0.3, blue: 0.9), RGBAColor(red: 0.9, green: 0.8, blue: 0.1),
+    ] {
         let (h, s, l) = DesktopPictureColor.hsl(c)
         expect(close(DesktopPictureColor.color(hue: h, saturation: s, lightness: l), c), "HSL round trip \(c)")
     }
     let blue = RGBAColor(red: 0.2, green: 0.35, blue: 0.7)
     let dark = DesktopPictureColor.fill(from: blue, isDark: true)
     let light = DesktopPictureColor.fill(from: blue, isDark: false)
-    expect(abs(DesktopPictureColor.hsl(dark).lightness - DesktopPictureColor.darkLightness) < 0.005,
+    expect(
+        abs(DesktopPictureColor.hsl(dark).lightness - DesktopPictureColor.darkLightness) < 0.005,
         "behind light titles the fill is dark")
-    expect(abs(DesktopPictureColor.hsl(light).lightness - DesktopPictureColor.lightLightness) < 0.005,
+    expect(
+        abs(DesktopPictureColor.hsl(light).lightness - DesktopPictureColor.lightLightness) < 0.005,
         "behind dark titles the fill is light")
-    expect(abs(DesktopPictureColor.hsl(dark).hue - DesktopPictureColor.hsl(blue).hue) < 0.005
-        && abs(DesktopPictureColor.hsl(light).hue - DesktopPictureColor.hsl(blue).hue) < 0.005,
+    expect(
+        abs(DesktopPictureColor.hsl(dark).hue - DesktopPictureColor.hsl(blue).hue) < 0.005
+            && abs(DesktopPictureColor.hsl(light).hue - DesktopPictureColor.hsl(blue).hue) < 0.005,
         "the fill keeps the picture's hue")
     expect(dark.blue > dark.red && light.blue > light.red, "a blue picture gives a blue fill")
     let red = DesktopPictureColor.fill(from: RGBAColor(red: 1, green: 0, blue: 0), isDark: true)
-    expect(abs(DesktopPictureColor.hsl(red).saturation - DesktopPictureColor.maximumSaturation) < 0.005,
+    expect(
+        abs(DesktopPictureColor.hsl(red).saturation - DesktopPictureColor.maximumSaturation) < 0.005,
         "a vivid picture is toned down")
     let gray = DesktopPictureColor.fill(from: RGBAColor(red: 0.4, green: 0.4, blue: 0.4), isDark: false)
     expect(gray.red == gray.green && gray.green == gray.blue, "a gray picture gives a gray fill")
@@ -270,7 +283,8 @@ do {
     // View coordinates, y up: a Rounded shape 33 pt tall whose bottom edge is at y = 19.
     let shape = CGRect(x: 6, y: 19, width: 1788, height: 33)
     let r: CGFloat = 10
-    expect(PointerReach.target(pointer: CGPoint(x: 900, y: 19 - 41), shapes: [shape], cornerRadius: r) == nil,
+    expect(
+        PointerReach.target(pointer: CGPoint(x: 900, y: 19 - 41), shapes: [shape], cornerRadius: r) == nil,
         "a pointer more than 40 pt below the shape does not pull it")
     let far = PointerReach.target(pointer: CGPoint(x: 900, y: 19 - 30), shapes: [shape], cornerRadius: r)
     let near = PointerReach.target(pointer: CGPoint(x: 900, y: 19 - 5), shapes: [shape], cornerRadius: r)
@@ -283,35 +297,45 @@ do {
 
     let left = CGRect(x: 6, y: 19, width: 447, height: 33)
     let right = CGRect(x: 1053, y: 19, width: 741, height: 33)
-    expect(PointerReach.target(pointer: CGPoint(x: 1100, y: 10), shapes: [left, right], cornerRadius: r)?.index == 1,
+    expect(
+        PointerReach.target(pointer: CGPoint(x: 1100, y: 10), shapes: [left, right], cornerRadius: r)?.index == 1,
         "with Split, the shape nearest the pointer is pulled")
-    expect(PointerReach.target(pointer: CGPoint(x: 753, y: 10), shapes: [left, right], cornerRadius: r) == nil,
+    expect(
+        PointerReach.target(pointer: CGPoint(x: 753, y: 10), shapes: [left, right], cornerRadius: r) == nil,
         "a pointer in the middle of a wide gap pulls neither shape")
     let narrow = CGRect(x: 6, y: 19, width: 60, height: 33)
-    expect(PointerReach.target(pointer: CGPoint(x: 30, y: 15), shapes: [narrow], cornerRadius: r) == nil,
+    expect(
+        PointerReach.target(pointer: CGPoint(x: 30, y: 15), shapes: [narrow], cornerRadius: r) == nil,
         "a shape too narrow for the swelling is left alone")
 
     let swollen = PointerReach.path(
         for: [shape], cornerRadius: r, bulge: .init(index: 0, x: 900, depth: PointerReach.maximumDepth))
     expect(swollen.contains(CGPoint(x: 900, y: 19 - 5)), "the swollen edge reaches below the shape")
-    expect(!swollen.contains(CGPoint(x: 900 - PointerReach.halfWidth - 2, y: 18)), "only the part under the pointer swells")
-    expect(swollen.contains(CGPoint(x: 900, y: 35)) && swollen.contains(CGPoint(x: 100, y: 35)),
+    expect(
+        !swollen.contains(CGPoint(x: 900 - PointerReach.halfWidth - 2, y: 18)), "only the part under the pointer swells"
+    )
+    expect(
+        swollen.contains(CGPoint(x: 900, y: 35)) && swollen.contains(CGPoint(x: 100, y: 35)),
         "the rest of the shape is still filled")
     expect(!swollen.contains(CGPoint(x: 7, y: 51)), "the corners stay rounded")
     let shrunk = CGRect(x: 6, y: 19, width: 600, height: 33)
     let stale = PointerReach.path(
         for: [shrunk], cornerRadius: r, bulge: .init(index: 0, x: 900, depth: PointerReach.maximumDepth))
-    expect(stale.boundingBox.maxX <= shrunk.maxX + 0.5,
+    expect(
+        stale.boundingBox.maxX <= shrunk.maxX + 0.5,
         "a swelling left behind by a shrinking shape stays inside it")
     let flat = PointerReach.path(for: [shape], cornerRadius: r, bulge: .init(index: 0, x: 900, depth: 0.01))
     expect(flat == ShapeLayout.path(for: [shape], cornerRadius: r), "a swelling too small to see draws the plain shape")
 
     let bar = CGRect(x: 0, y: 16, width: 1800, height: 39)
-    expect(PointerReach.maximumDepth(shape: shape, bar: bar, placement: .belowMenuBar) == PointerReach.maximumDepth,
+    expect(
+        PointerReach.maximumDepth(shape: shape, bar: bar, placement: .belowMenuBar) == PointerReach.maximumDepth,
         "under a transparent bar the swelling goes its full depth")
-    expect(PointerReach.maximumDepth(shape: shape, bar: bar, placement: .aboveMenuBar) == 3,
+    expect(
+        PointerReach.maximumDepth(shape: shape, bar: bar, placement: .aboveMenuBar) == 3,
         "over the system's bar the swelling stops at the bar's bottom edge")
-    expect(PointerReach.maximumDepth(shape: bar, bar: bar, placement: .aboveMenuBar) == 0,
+    expect(
+        PointerReach.maximumDepth(shape: bar, bar: bar, placement: .aboveMenuBar) == 0,
         "with no bottom margin there is no room to swell over the system's bar")
 
     var spring = Spring()
@@ -348,13 +372,16 @@ do {
         decoded?.shape == .split && decoded?.cornerRadius == 4
             && decoded?.borderWidth == AppearanceConfiguration.default.borderWidth, "missing keys fall back to defaults"
     )
-    expect(decoded?.colorFromDesktopPicture == false, "configurations saved before the switch existed keep their colors")
+    expect(
+        decoded?.colorFromDesktopPicture == false, "configurations saved before the switch existed keep their colors")
     store.configuration.colorFromDesktopPicture = true
     expect(SettingsStore(defaults: defaults).configuration.colorFromDesktopPicture, "the switch survives a reload")
-    expect(decoded?.reachesTowardPointer == false && AppearanceConfiguration.default.reachesTowardPointer == false,
+    expect(
+        decoded?.reachesTowardPointer == false && AppearanceConfiguration.default.reachesTowardPointer == false,
         "Reach Toward Pointer is off by default and for older saved settings")
     store.configuration.reachesTowardPointer = true
-    expect(SettingsStore(defaults: defaults).configuration.reachesTowardPointer, "Reach Toward Pointer survives a reload")
+    expect(
+        SettingsStore(defaults: defaults).configuration.reachesTowardPointer, "Reach Toward Pointer survives a reload")
 }
 
 print("Offscreen render")
@@ -364,8 +391,7 @@ try? FileManager.default.createDirectory(at: outputDirectory, withIntermediateDi
 func render(
     name: String, shape: MenuBarShape, isDark: Bool, placement: OverlayPlacement, wallpaper: CGImage? = nil,
     desktopFill: RGBAColor? = nil
-) -> NSBitmapImageRep?
-{
+) -> NSBitmapImageRep? {
     var config = AppearanceConfiguration.default
     config.shape = shape
     config.borderWidth = 1
@@ -416,7 +442,8 @@ if let rep = render(
     let pixel = rep.colorAt(x: Int(900 * CGFloat(rep.pixelsWide) / 1800), y: Int(20 * CGFloat(rep.pixelsWide) / 1800))?
         .usingColorSpace(.sRGB)
 {
-    expect(pixel.greenComponent > pixel.redComponent + 0.05 && pixel.blueComponent > pixel.redComponent + 0.05,
+    expect(
+        pixel.greenComponent > pixel.redComponent + 0.05 && pixel.blueComponent > pixel.redComponent + 0.05,
         "the fill taken from the desktop picture is drawn instead of the light color")
 }
 

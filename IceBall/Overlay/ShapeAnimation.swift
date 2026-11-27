@@ -51,7 +51,8 @@ nonisolated enum ShapeAnimation {
                 minX = min(a.minX, b.minX)
                 maxX = max(a.maxX, b.maxX)
             }
-            dirty = dirty.union(CGRect(x: minX - reach, y: bounds.minY, width: maxX - minX + reach * 2, height: bounds.height))
+            dirty = dirty.union(
+                CGRect(x: minX - reach, y: bounds.minY, width: maxX - minX + reach * 2, height: bounds.height))
         }
         return dirty.isNull ? .zero : dirty.intersection(bounds)
     }

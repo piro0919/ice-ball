@@ -16,7 +16,6 @@ struct AppearancePreview: View {
     private let menuTitles = PreviewMetrics.menuTitles
     private let statusSymbols = PreviewMetrics.statusSymbols
 
-
     /// The two corners of the preview's diagonal gradient, which stands in for the desktop picture.
     static func backdrop(isDark: Bool) -> [RGBAColor] {
         isDark
