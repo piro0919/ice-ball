@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.5]
 
 - The fill no longer turns light under light menu titles. With Screen Recording allowed, Ice Ball reads the color of the titles macOS drew on each display instead of guessing it from the desktop picture's brightness, which went wrong on a gray picture
 
