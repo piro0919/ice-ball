@@ -268,6 +268,39 @@ do {
     expect(
         abs(average.red - 0.5) < 0.02 && abs(average.green - 0.2) < 0.02 && abs(average.blue - 0.4) < 0.02,
         "the average color of a solid picture is that color")
+
+    // A menu bar window capture: titles over transparency.
+    func menuBar(titles: CGColor, icon: CGColor? = nil, background: CGColor? = nil) -> CGImage {
+        let c = CGContext(
+            data: nil, width: 200, height: 24, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+        if let background {
+            c.setFillColor(background)
+            c.fill(CGRect(x: 0, y: 0, width: 200, height: 24))
+        }
+        c.setFillColor(titles)
+        c.fill(CGRect(x: 10, y: 8, width: 60, height: 8))
+        if let icon {
+            c.setFillColor(icon)
+            c.fill(CGRect(x: 100, y: 4, width: 80, height: 16))
+        }
+        return c.makeImage()!
+    }
+    let white = CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.85)
+    let black = CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.85)
+    expect(WallpaperProvider.titlesAreLight(in: menuBar(titles: white)) == true, "white titles read as light")
+    expect(WallpaperProvider.titlesAreLight(in: menuBar(titles: black)) == false, "black titles read as dark")
+    expect(
+        WallpaperProvider.titlesAreLight(
+            in: menuBar(titles: white, icon: CGColor(srgbRed: 0.1, green: 0.1, blue: 0.6, alpha: 1))) == true,
+        "a larger dark colored icon does not sway light titles")
+    expect(
+        WallpaperProvider.titlesAreLight(
+            in: menuBar(titles: white, background: CGColor(srgbRed: 0.9, green: 0.9, blue: 0.9, alpha: 1))) == nil,
+        "a menu bar with its own background is not read")
+    expect(
+        WallpaperProvider.titlesAreLight(in: menuBar(titles: CGColor(gray: 0, alpha: 0))) == nil,
+        "an empty capture is not read")
 }
 
 print("DesktopPictureColor")

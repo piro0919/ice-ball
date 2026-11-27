@@ -22,7 +22,8 @@ final class WallpaperProvider {
         var scale: CGFloat
     }
 
-    private var cache: [CGDirectDisplayID: (key: Key, image: CGImage, average: RGBAColor)] = [:]
+    private var cache: [CGDirectDisplayID: (key: Key, image: CGImage, average: RGBAColor, titlesAreLight: Bool?)] =
+        [:]
     private var loading: [CGDirectDisplayID: Key] = [:]
     /// Keys whose last load produced nothing; not retried until `invalidate()`.
     private var failures: [CGDirectDisplayID: Key] = [:]
@@ -48,6 +49,15 @@ final class WallpaperProvider {
     /// Average luminance (0–1) of the strip, once `image(for:bar:)` has loaded it.
     func luminance(for screen: NSScreen, bar: NSRect) -> CGFloat? {
         averageColor(for: screen, bar: bar).map(Self.luminance)
+    }
+
+    /// Whether macOS drew this display's menu titles light, read from the menu bar window
+    /// itself, once `image(for:bar:)` has loaded it. nil without Screen Recording, or when the
+    /// menu bar window has a background of its own (then only the titles cannot be told apart).
+    func titlesAreLight(for screen: NSScreen, bar: NSRect) -> Bool? {
+        let key = Key(displayID: screen.displayID, bar: bar, scale: screen.backingScaleFactor)
+        guard let cached = cache[key.displayID], cached.key == key else { return nil }
+        return cached.titlesAreLight
     }
 
     /// Average color of the strip, once `image(for:bar:)` has loaded it.
@@ -77,9 +87,11 @@ final class WallpaperProvider {
         let screenFrame = screen.frame
         Task { [weak self] in
             var image: CGImage?
+            var titlesAreLight: Bool?
             if Self.hasScreenCapturePermission {
                 image = await Self.capture(
                     displayID: key.displayID, screenFrame: screenFrame, bar: key.bar, scale: key.scale)
+                titlesAreLight = await Self.captureMenuBar(displayID: key.displayID).flatMap(Self.titlesAreLight(in:))
             }
             if image == nil, let url {
                 image = Self.render(
@@ -88,7 +100,7 @@ final class WallpaperProvider {
             guard let self, self.generation == generation, self.loading[key.displayID] == key else { return }
             self.loading[key.displayID] = nil
             if let image {
-                self.cache[key.displayID] = (key, image, Self.averageColor(of: image))
+                self.cache[key.displayID] = (key, image, Self.averageColor(of: image), titlesAreLight)
             } else {
                 self.failures[key.displayID] = key
             }
@@ -166,6 +178,59 @@ final class WallpaperProvider {
         config.showsCursor = false
         config.capturesAudio = false
         return try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+    }
+
+    /// The system menu bar window of the display, captured alone. Its pixels are the titles
+    /// and status items over transparency, unless the bar draws a background of its own.
+    private nonisolated static func captureMenuBar(displayID: CGDirectDisplayID) async -> CGImage? {
+        guard let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        else { return nil }
+        let menuLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
+        let displayBounds = CGDisplayBounds(displayID)
+        guard
+            let window = content.windows.first(where: {
+                $0.windowLayer == menuLevel && $0.title == "Menubar" && $0.frame.intersects(displayBounds)
+            })
+        else { return nil }
+        let config = SCStreamConfiguration()
+        config.width = Int(window.frame.width)
+        config.height = Int(window.frame.height)
+        config.showsCursor = false
+        config.capturesAudio = false
+        return try? await SCScreenshotManager.captureImage(
+            contentFilter: SCContentFilter(desktopIndependentWindow: window), configuration: config)
+    }
+
+    /// Whether the titles in a menu bar window capture are light. Only near-gray pixels count,
+    /// so colored status item icons do not sway it. nil when nothing is drawn, or when most of
+    /// the window is covered (a menu bar with its own background).
+    nonisolated static func titlesAreLight(in image: CGImage) -> Bool? {
+        let width = image.width
+        let height = image.height
+        guard width > 0, height > 0, let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        guard
+            let context = CGContext(
+                data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        var covered = 0
+        var weight = 0.0
+        var weightedLuminance = 0.0
+        for i in stride(from: 0, to: pixels.count, by: 4) {
+            let alpha = Double(pixels[i + 3]) / 255
+            guard alpha > 0.02 else { continue }
+            if alpha > 0.9 { covered += 1 }
+            let r = Double(pixels[i]) / 255 / alpha
+            let g = Double(pixels[i + 1]) / 255 / alpha
+            let b = Double(pixels[i + 2]) / 255 / alpha
+            guard max(r, g, b) - min(r, g, b) < 0.15 else { continue }
+            weightedLuminance += (0.2126 * r + 0.7152 * g + 0.0722 * b) * alpha
+            weight += alpha
+        }
+        guard weight > 0, Double(covered) < Double(width * height) * 0.5 else { return nil }
+        return weightedLuminance / weight >= 0.5
     }
 
     // MARK: Desktop picture file

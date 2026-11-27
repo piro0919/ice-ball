@@ -478,11 +478,16 @@ final class OverlayController {
                 }
             }
 
-            // macOS draws menu titles light over a dark desktop picture and dark over a light
-            // one; the status item's appearance does not follow (it stayed VibrantLight over
-            // black on macOS 27.2.1). Judge from the picture's brightness under the bar.
+            // The fill must contrast with the menu titles macOS drew, which it picks per display.
+            // The status item's appearance does not follow them (it stayed VibrantLight over
+            // black on macOS 27.2.1), and the picture's brightness misjudges them: a gray
+            // picture of luminance 0.63 still got light titles on macOS 27.2.1. So read the
+            // titles from the menu bar window; without Screen Recording, fall back to the
+            // picture's brightness.
             let isDark =
-                wallpapers.luminance(for: screen, bar: bar).map { $0 < Self.darkLuminanceThreshold } ?? menuBarIsDark
+                wallpapers.titlesAreLight(for: screen, bar: bar)
+                ?? wallpapers.luminance(for: screen, bar: bar).map { $0 < Self.darkLuminanceThreshold }
+                ?? menuBarIsDark
             if placement == .belowMenuBar { wallpaper = nil }
             // Without the picture, the configured colors are used.
             let desktopFill =
