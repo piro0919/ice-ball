@@ -299,6 +299,10 @@ do {
             in: menuBar(titles: white, background: CGColor(srgbRed: 0.9, green: 0.9, blue: 0.9, alpha: 1))) == nil,
         "a menu bar with its own background is not read")
     expect(
+        WallpaperProvider.titlesAreLight(
+            in: menuBar(titles: white, background: CGColor(srgbRed: 0.9, green: 0.9, blue: 0.9, alpha: 0.6))) == nil,
+        "a menu bar with a translucent background of its own is not read")
+    expect(
         WallpaperProvider.titlesAreLight(in: menuBar(titles: CGColor(gray: 0, alpha: 0))) == nil,
         "an empty capture is not read")
 }

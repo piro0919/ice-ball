@@ -221,7 +221,9 @@ final class WallpaperProvider {
         for i in stride(from: 0, to: pixels.count, by: 4) {
             let alpha = Double(pixels[i + 3]) / 255
             guard alpha > 0.02 else { continue }
-            if alpha > 0.9 { covered += 1 }
+            // Titles and icons cover well under half of the bar; a background of the bar's
+            // own, even a translucent one, covers nearly all of it.
+            covered += 1
             let r = Double(pixels[i]) / 255 / alpha
             let g = Double(pixels[i + 1]) / 255 / alpha
             let b = Double(pixels[i + 2]) / 255 / alpha
