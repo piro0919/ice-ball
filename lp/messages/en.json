@@ -173,7 +173,7 @@
     "sections": [
       {
         "title": "What it reads",
-        "body": "For Split, Ice Ball uses Accessibility to read where the app menus and status icons sit on the menu bar. When the macOS setting “Show menu bar background” is on, it reads your desktop picture file, or, when that file cannot be read and Screen Recording is allowed, captures only the desktop picture under the menu bar. All of this stays on your Mac."
+        "body": "For Split, Ice Ball uses Accessibility to read where the app menus and status icons sit on the menu bar. While the menu bar manager Dimble is running, it reads from Dimble’s settings which apps’ icons Dimble hides. When the macOS setting “Show menu bar background” is on, it reads your desktop picture file, or, when that file cannot be read and Screen Recording is allowed, captures only the desktop picture under the menu bar. All of this stays on your Mac."
       },
       {
         "title": "Update checks go to GitHub",

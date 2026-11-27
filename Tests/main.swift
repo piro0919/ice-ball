@@ -171,7 +171,11 @@ do {
     expect(owners.pids == [10], "a reading with items starts the time again")
     owners.record([], for: 10, at: grace * 2)
     expect(owners.pids.isEmpty, "an owner empty for long enough is dropped")
+    let raycast = [CGRect(x: 1126, y: 7, width: 68, height: 24)]
     owners.record(clock, for: 10, at: 0)
+    owners.record(raycast, for: 30, at: 0)
+    expect(owners.frames(excluding: [30]) == clock, "an excluded owner's items are left out")
+    expect(owners.pids == [10, 30], "an excluded owner stays known")
     owners.keepOnly(running: [20])
     expect(owners.pids.isEmpty, "a process that quit is forgotten")
 
@@ -194,6 +198,28 @@ do {
     expect(
         MenuBarRegions.statusItemsExtent(frames: [withStray[0]] + run, displays: [main]) == 1800 - 1292,
         "an item far left of the run is ignored")
+
+    // Shape of Dimble's settings as read on 2026-11-27 (Dimble build 95), trimmed.
+    let dimble = Data(
+        """
+        {"sectionModel":{"assignments":[
+          "bundle:org.mozilla.firefox","hidden",
+          "bundle:com.raycast.macos","alwaysHidden",
+          "status:com.apple.MenuBarAgent::com.apple.menuextra.display","alwaysHidden",
+          "bundle:io.kkweb.wacchi","visible",
+          "bundle:org.p0deje.Maccy"
+        ]}}
+        """.utf8)
+    expect(
+        ConcealedStatusItems.dimbleConcealedBundleIDs(settings: dimble)
+            == ["org.mozilla.firefox", "com.raycast.macos"],
+        "Dimble's hidden and always hidden apps are read; single items and visible apps are not")
+    expect(
+        ConcealedStatusItems.dimbleConcealedBundleIDs(settings: Data("[]".utf8)).isEmpty,
+        "unreadable Dimble settings hide nothing")
+    expect(
+        ConcealedStatusItems.concealedBundleIDs(runningBundleIDs: []).isEmpty,
+        "nothing is hidden while Dimble is not running")
 
     let offscreen = [CGRect(x: 1100, y: 600, width: 22, height: 24)]
     expect(

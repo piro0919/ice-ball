@@ -354,14 +354,19 @@ final class OverlayController {
 
     private func refreshStatusItems(fullScan: Bool, alsoCheck: Set<pid_t> = []) {
         guard needsRegions else { return }
-        let pids = NSWorkspace.shared.runningApplications.map(\.processIdentifier)
+        let apps = NSWorkspace.shared.runningApplications
+        let pids = apps.map(\.processIdentifier)
+        let concealed = ConcealedStatusItems.concealedBundleIDs(
+            runningBundleIDs: Set(apps.compactMap(\.bundleIdentifier)))
+        let concealedPIDs = Set(
+            apps.filter { $0.bundleIdentifier.map(concealed.contains) ?? false }.map(\.processIdentifier))
         let displays = displayInfos()
         Task { [weak self] in
             guard let self else { return }
             guard
                 let frames = await regionReader.statusItemFrames(
                     runningPIDs: pids, fullScan: fullScan, alsoCheck: alsoCheck,
-                    menuBars: displays.filter(\.hasMenuBar).map(\.bounds))
+                    menuBars: displays.filter(\.hasMenuBar).map(\.bounds), excluding: concealedPIDs)
             else {
                 log.debug("status items: menu bar cannot be read now; keeping the last extent")
                 return

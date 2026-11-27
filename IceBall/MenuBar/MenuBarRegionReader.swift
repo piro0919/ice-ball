@@ -40,13 +40,16 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
     ///     plus `alsoCheck`, are asked. A full scan asks every process (about 1.3 s for
     ///     160 processes on the development machine, almost all of it waiting on IPC).
     ///   - menuBars: CG bounds of the displays that show a menu bar.
+    ///   - excluding: Processes whose status items are left out of the result (still read,
+    ///     so they stay known owners), such as those a menu bar manager hides.
     /// - Returns: nil, without asking anyone, when one of those menu bars cannot be read now,
     ///   for up to `MenuBarRegions.unreadableGrace` seconds. While Mission Control is open
     ///   many apps report no status items (seen on macOS 27.2.1: 13 of 20 owners), and such
     ///   a reading would only count against them. The limit keeps a frontmost app that never
     ///   answers Accessibility from stopping the scans.
     func statusItemFrames(
-        runningPIDs: [pid_t], fullScan: Bool, alsoCheck: Set<pid_t> = [], menuBars: [CGRect]
+        runningPIDs: [pid_t], fullScan: Bool, alsoCheck: Set<pid_t> = [], menuBars: [CGRect],
+        excluding: Set<pid_t> = []
     ) async -> [CGRect]? {
         await withCheckedContinuation { continuation in
             queue.async {
@@ -67,7 +70,7 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
                 for pid in targets {
                     self.statusItemOwners.record(Self.extrasFrames(pid: pid), for: pid, at: now)
                 }
-                continuation.resume(returning: self.statusItemOwners.allFrames)
+                continuation.resume(returning: self.statusItemOwners.frames(excluding: excluding))
             }
         }
     }
@@ -142,7 +145,11 @@ nonisolated struct StatusItemOwners: Sendable {
     private var lastSeen: [pid_t: Double] = [:]
 
     var pids: Set<pid_t> { Set(framesByPID.keys) }
-    var allFrames: [CGRect] { framesByPID.values.flatMap { $0 } }
+    var allFrames: [CGRect] { frames(excluding: []) }
+
+    func frames(excluding excluded: Set<pid_t>) -> [CGRect] {
+        framesByPID.filter { !excluded.contains($0.key) }.values.flatMap { $0 }
+    }
 
     /// Forgets processes that quit.
     mutating func keepOnly(running: Set<pid_t>) {

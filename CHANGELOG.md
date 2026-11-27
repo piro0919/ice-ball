@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- Split: with Dimble hiding status items, the right shape no longer stretches left over the empty space those items leave
+
 ## [0.1.3]
 
 - Split no longer turns into one shape for a few seconds after Mission Control. The right shape also no longer shrinks to a few status items for up to a minute afterwards
