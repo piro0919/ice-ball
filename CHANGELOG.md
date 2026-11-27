@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.3]
 
 - Split no longer turns into one shape for a few seconds after Mission Control. The right shape also no longer shrinks to a few status items for up to a minute afterwards
 
