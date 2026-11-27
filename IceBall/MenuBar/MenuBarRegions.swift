@@ -22,6 +22,18 @@ nonisolated struct MenuBarRegions: Equatable, Sendable {
         return extent > 0 ? extent : nil
     }
 
+    /// The extent to show for one display after reading its app menus.
+    /// - Parameters:
+    ///   - frames: nil when the menu bar could not be read (Mission Control covering it):
+    ///     the last width stays, so Split does not turn into one shape until the next reading.
+    ///   - keepingMissing: Whether a menu bar read as empty keeps the last width.
+    static func nextApplicationMenuExtent(
+        frames: [CGRect]?, on display: DisplayInfo, previous: CGFloat?, keepingMissing: Bool
+    ) -> CGFloat? {
+        guard let frames else { return previous }
+        return applicationMenuExtent(frames: frames, on: display) ?? (keepingMissing ? previous : nil)
+    }
+
     static func statusItemsExtent(frames: [CGRect], displays: [DisplayInfo]) -> CGFloat? {
         guard let display = bestDisplay(for: frames, in: displays) else { return nil }
         let onDisplay = frames.filter { frame in

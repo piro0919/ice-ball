@@ -12,8 +12,8 @@ import ApplicationServices
 nonisolated final class MenuBarRegionReader: @unchecked Sendable {
     private let queue = DispatchQueue(label: "IceBall.MenuBarRegionReader", qos: .utility)
 
-    /// Processes that owned at least one status item at the last scan. Queue-confined.
-    private var statusItemOwners = Set<pid_t>()
+    /// Processes known to own status items. Queue-confined.
+    private var statusItemOwners = StatusItemOwners()
 
     /// Per-call timeout for Accessibility messages, so one hung app cannot stall a scan.
     private static let messagingTimeout: Float = 0.1
@@ -21,30 +21,11 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
     static var isTrusted: Bool { AXIsProcessTrusted() }
 
     /// Frames, in CG global coordinates, of the top-level menus shown in the menu bar of the
-    /// display with CG bounds `displayBounds`.
-    func applicationMenuFrames(atMenuBarOf displayBounds: CGRect) async -> [CGRect] {
+    /// display with CG bounds `displayBounds`; nil when the menu bar cannot be read now.
+    func applicationMenuFrames(atMenuBarOf displayBounds: CGRect) async -> [CGRect]? {
         await withCheckedContinuation { continuation in
             queue.async {
-                // Hit-test the menu bar's left end to learn which app it is showing.
-                let systemWide = AXUIElementCreateSystemWide()
-                AXUIElementSetMessagingTimeout(systemWide, Self.messagingTimeout)
-                var hit: AXUIElement?
-                var pid: pid_t = 0
-                guard
-                    AXUIElementCopyElementAtPosition(
-                        systemWide, Float(displayBounds.minX + 5), Float(displayBounds.minY + 5), &hit) == .success,
-                    let hit, AXUIElementGetPid(hit, &pid) == .success
-                else {
-                    continuation.resume(returning: [])
-                    return
-                }
-                let app = AXUIElementCreateApplication(pid)
-                AXUIElementSetMessagingTimeout(app, Self.messagingTimeout)
-                guard let menuBar: AXUIElement = Self.attribute(app, kAXMenuBarAttribute) else {
-                    continuation.resume(returning: [])
-                    return
-                }
-                continuation.resume(returning: Self.childFrames(of: menuBar))
+                continuation.resume(returning: Self.menuBar(at: displayBounds).map(Self.childFrames))
             }
         }
     }
@@ -56,29 +37,50 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
     ///   - fullScan: When `false`, only processes that owned a status item last time,
     ///     plus `alsoCheck`, are asked. A full scan asks every process (about 1.3 s for
     ///     160 processes on the development machine, almost all of it waiting on IPC).
-    func statusItemFrames(runningPIDs: [pid_t], fullScan: Bool, alsoCheck: Set<pid_t> = []) async -> [CGRect] {
+    ///   - menuBars: CG bounds of the displays that show a menu bar.
+    /// - Returns: nil, without asking anyone, when one of those menu bars cannot be read now.
+    ///   While Mission Control is open many apps report no status items (seen on macOS
+    ///   27.2.1: 13 of 20 owners), and such a reading would only count against them.
+    func statusItemFrames(
+        runningPIDs: [pid_t], fullScan: Bool, alsoCheck: Set<pid_t> = [], menuBars: [CGRect]
+    ) async -> [CGRect]? {
         await withCheckedContinuation { continuation in
             queue.async {
-                let running = Set(runningPIDs)
-                let targets = fullScan ? running : self.statusItemOwners.union(alsoCheck).intersection(running)
-                var owners = fullScan ? Set<pid_t>() : self.statusItemOwners.intersection(running)
-                var frames: [CGRect] = []
-                for pid in targets {
-                    let found = Self.extrasFrames(pid: pid)
-                    if found.isEmpty {
-                        owners.remove(pid)
-                    } else {
-                        owners.insert(pid)
-                        frames += found
-                    }
+                guard menuBars.allSatisfy({ Self.menuBar(at: $0) != nil }) else {
+                    continuation.resume(returning: nil)
+                    return
                 }
-                self.statusItemOwners = owners
-                continuation.resume(returning: frames)
+                let running = Set(runningPIDs)
+                self.statusItemOwners.keepOnly(running: running)
+                let targets = fullScan ? running : self.statusItemOwners.pids.union(alsoCheck).intersection(running)
+                for pid in targets {
+                    self.statusItemOwners.record(Self.extrasFrames(pid: pid), for: pid)
+                }
+                continuation.resume(returning: self.statusItemOwners.allFrames)
             }
         }
     }
 
     // MARK: Accessibility helpers
+
+    /// The menu bar of the app shown at the left end of the menu bar of the display with CG
+    /// bounds `displayBounds`. Hit-testing there tells which app it is showing. Nil when
+    /// something else is there: with Mission Control open the hit lands on WindowManager,
+    /// which has no menu bar (seen on macOS 27.2.1), and macOS posts nothing when it closes.
+    private static func menuBar(at displayBounds: CGRect) -> AXUIElement? {
+        let systemWide = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(systemWide, messagingTimeout)
+        var hit: AXUIElement?
+        var pid: pid_t = 0
+        guard
+            AXUIElementCopyElementAtPosition(
+                systemWide, Float(displayBounds.minX + 5), Float(displayBounds.minY + 5), &hit) == .success,
+            let hit, AXUIElementGetPid(hit, &pid) == .success
+        else { return nil }
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, messagingTimeout)
+        return attribute(app, kAXMenuBarAttribute)
+    }
 
     private static func extrasFrames(pid: pid_t) -> [CGRect] {
         let app = AXUIElementCreateApplication(pid)
@@ -111,5 +113,43 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success else { return nil }
         return value as? T
+    }
+}
+
+/// The processes that own status items, with the frames last read from each.
+///
+/// Right after Mission Control closes, some apps still report no status items although the
+/// menu bar can be read again (seen on macOS 27.2.1: 11 of 24 items left). Dropping them on
+/// the first empty reading left the right shape too short until the next full scan, a minute
+/// later. An owner that reads as empty keeps its last frames until it has done so
+/// `missesBeforeDropping` times in a row, which also ends items an app really removed.
+nonisolated struct StatusItemOwners: Sendable {
+    static let missesBeforeDropping = 3
+
+    private(set) var framesByPID: [pid_t: [CGRect]] = [:]
+    private var misses: [pid_t: Int] = [:]
+
+    var pids: Set<pid_t> { Set(framesByPID.keys) }
+    var allFrames: [CGRect] { framesByPID.values.flatMap { $0 } }
+
+    /// Forgets processes that quit.
+    mutating func keepOnly(running: Set<pid_t>) {
+        framesByPID = framesByPID.filter { running.contains($0.key) }
+        misses = misses.filter { running.contains($0.key) }
+    }
+
+    mutating func record(_ frames: [CGRect], for pid: pid_t) {
+        if !frames.isEmpty {
+            framesByPID[pid] = frames
+            misses[pid] = nil
+        } else if framesByPID[pid] != nil {
+            let count = (misses[pid] ?? 0) + 1
+            if count >= Self.missesBeforeDropping {
+                framesByPID[pid] = nil
+                misses[pid] = nil
+            } else {
+                misses[pid] = count
+            }
+        }
     }
 }

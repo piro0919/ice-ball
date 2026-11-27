@@ -132,6 +132,35 @@ do {
     expect(
         MenuBarRegions.applicationMenuExtent(frames: shiftedUp, on: main) == 445,
         "menus reported slightly above the display still count")
+    // With Mission Control open the hit test lands on WindowManager and nothing can be read.
+    expect(
+        MenuBarRegions.nextApplicationMenuExtent(frames: nil, on: main, previous: 445, keepingMissing: false) == 445,
+        "an unreadable menu bar keeps the last width, even on the last retry")
+    expect(
+        MenuBarRegions.nextApplicationMenuExtent(frames: [], on: main, previous: 445, keepingMissing: true) == 445,
+        "a menu bar read as empty keeps the last width while retrying")
+    expect(
+        MenuBarRegions.nextApplicationMenuExtent(frames: [], on: main, previous: 445, keepingMissing: false) == nil,
+        "the last retry accepts a menu bar read as empty")
+    expect(
+        MenuBarRegions.nextApplicationMenuExtent(frames: menus, on: main, previous: 360, keepingMissing: false) == 445,
+        "a reading replaces the last width")
+
+    var owners = StatusItemOwners()
+    let clock = [CGRect(x: 1664, y: 0, width: 115, height: 39)]
+    owners.record(clock, for: 10)
+    owners.record([], for: 20)
+    expect(owners.pids == [10], "a process with no status items is not an owner")
+    for _ in 1..<StatusItemOwners.missesBeforeDropping { owners.record([], for: 10) }
+    expect(owners.allFrames == clock, "an owner read as empty keeps its last frames for a while")
+    owners.record(clock, for: 10)
+    for _ in 1..<StatusItemOwners.missesBeforeDropping { owners.record([], for: 10) }
+    expect(owners.pids == [10], "a reading with items starts the count again")
+    owners.record([], for: 10)
+    expect(owners.pids.isEmpty, "an owner read as empty that many times in a row is dropped")
+    owners.record(clock, for: 10)
+    owners.keepOnly(running: [20])
+    expect(owners.pids.isEmpty, "a process that quit is forgotten")
 
     // A contiguous run from 1061 to the clock, plus one item parked behind the notch.
     let items =

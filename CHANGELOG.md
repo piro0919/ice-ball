@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- Split no longer turns into one shape for a few seconds after Mission Control. The right shape also no longer shrinks to a few status items for up to a minute afterwards
+
 ## [0.1.2]
 
 - Split: when you switch apps, the left shape grows or shrinks to the new app's menus in 0.25 s instead of jumping. With Reduce motion on, it still jumps

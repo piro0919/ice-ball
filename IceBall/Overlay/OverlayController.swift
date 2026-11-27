@@ -324,14 +324,14 @@ final class OverlayController {
     /// Right after an app switch the new app's menus often read as nothing for a moment
     /// (seen for about 0.2 s on macOS 27.2.1), which made Split fall back to one shape and
     /// back. With `keepingMissing`, a display that reads as nothing keeps its last width;
-    /// the last retry accepts nothing.
+    /// the last retry accepts nothing. A menu bar that cannot be read at all keeps it always.
     private func measureApplicationMenu(keepingMissing: Bool = false) async {
         var extents: [CGDirectDisplayID: CGFloat] = [:]
         for display in displayInfos() where display.hasMenuBar {
             let frames = await regionReader.applicationMenuFrames(atMenuBarOf: display.bounds)
-            extents[display.displayID] =
-                MenuBarRegions.applicationMenuExtent(frames: frames, on: display)
-                ?? (keepingMissing ? regions.applicationMenuExtents[display.displayID] : nil)
+            extents[display.displayID] = MenuBarRegions.nextApplicationMenuExtent(
+                frames: frames, on: display, previous: regions.applicationMenuExtents[display.displayID],
+                keepingMissing: keepingMissing)
         }
         log.debug("app menu extents: \(String(describing: extents), privacy: .public)")
         guard needsRegions, regions.applicationMenuExtents != extents else { return }
@@ -342,11 +342,18 @@ final class OverlayController {
     private func refreshStatusItems(fullScan: Bool, alsoCheck: Set<pid_t> = []) {
         guard needsRegions else { return }
         let pids = NSWorkspace.shared.runningApplications.map(\.processIdentifier)
+        let displays = displayInfos()
         Task { [weak self] in
             guard let self else { return }
-            let frames = await regionReader.statusItemFrames(
-                runningPIDs: pids, fullScan: fullScan, alsoCheck: alsoCheck)
-            let extent = MenuBarRegions.statusItemsExtent(frames: frames, displays: displayInfos())
+            guard
+                let frames = await regionReader.statusItemFrames(
+                    runningPIDs: pids, fullScan: fullScan, alsoCheck: alsoCheck,
+                    menuBars: displays.filter(\.hasMenuBar).map(\.bounds))
+            else {
+                log.debug("status items: menu bar cannot be read now; keeping the last extent")
+                return
+            }
+            let extent = MenuBarRegions.statusItemsExtent(frames: frames, displays: displays)
             log.debug("status items: \(frames.count) frames, extent \(String(describing: extent), privacy: .public)")
             guard needsRegions, regions.statusItemsExtent != extent else { return }
             regions.statusItemsExtent = extent
