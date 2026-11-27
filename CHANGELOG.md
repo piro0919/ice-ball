@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.4]
 
 - Split: with Dimble hiding status items, the right shape no longer stretches left over the empty space those items leave
 
