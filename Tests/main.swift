@@ -146,19 +146,26 @@ do {
         MenuBarRegions.nextApplicationMenuExtent(frames: menus, on: main, previous: 360, keepingMissing: false) == 445,
         "a reading replaces the last width")
 
+    expect(
+        MenuBarRegions.nextApplicationMenuExtent(
+            frames: nil, on: main, previous: 445, keepingMissing: false,
+            unreadableFor: MenuBarRegions.unreadableGrace) == nil,
+        "a menu bar unreadable for too long falls back to one shape")
+
     var owners = StatusItemOwners()
     let clock = [CGRect(x: 1664, y: 0, width: 115, height: 39)]
-    owners.record(clock, for: 10)
-    owners.record([], for: 20)
+    let grace = StatusItemOwners.emptyGrace
+    owners.record(clock, for: 10, at: 0)
+    owners.record([], for: 20, at: 0)
     expect(owners.pids == [10], "a process with no status items is not an owner")
-    for _ in 1..<StatusItemOwners.missesBeforeDropping { owners.record([], for: 10) }
-    expect(owners.allFrames == clock, "an owner read as empty keeps its last frames for a while")
-    owners.record(clock, for: 10)
-    for _ in 1..<StatusItemOwners.missesBeforeDropping { owners.record([], for: 10) }
-    expect(owners.pids == [10], "a reading with items starts the count again")
-    owners.record([], for: 10)
-    expect(owners.pids.isEmpty, "an owner read as empty that many times in a row is dropped")
-    owners.record(clock, for: 10)
+    for t in [0.1, 0.2, 0.3, grace - 1] { owners.record([], for: 10, at: t) }
+    expect(owners.allFrames == clock, "an owner read as empty keeps its last frames, however many scans")
+    owners.record(clock, for: 10, at: grace - 1)
+    owners.record([], for: 10, at: grace + 1)
+    expect(owners.pids == [10], "a reading with items starts the time again")
+    owners.record([], for: 10, at: grace * 2)
+    expect(owners.pids.isEmpty, "an owner empty for long enough is dropped")
+    owners.record(clock, for: 10, at: 0)
     owners.keepOnly(running: [20])
     expect(owners.pids.isEmpty, "a process that quit is forgotten")
 

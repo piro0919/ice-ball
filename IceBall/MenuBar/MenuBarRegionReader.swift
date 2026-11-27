@@ -14,6 +14,8 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
 
     /// Processes known to own status items. Queue-confined.
     private var statusItemOwners = StatusItemOwners()
+    /// When the menu bars started reading as unreadable for a status item scan. Queue-confined.
+    private var menuBarsUnreadableSince: Double?
 
     /// Per-call timeout for Accessibility messages, so one hung app cannot stall a scan.
     private static let messagingTimeout: Float = 0.1
@@ -38,23 +40,32 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
     ///     plus `alsoCheck`, are asked. A full scan asks every process (about 1.3 s for
     ///     160 processes on the development machine, almost all of it waiting on IPC).
     ///   - menuBars: CG bounds of the displays that show a menu bar.
-    /// - Returns: nil, without asking anyone, when one of those menu bars cannot be read now.
-    ///   While Mission Control is open many apps report no status items (seen on macOS
-    ///   27.2.1: 13 of 20 owners), and such a reading would only count against them.
+    /// - Returns: nil, without asking anyone, when one of those menu bars cannot be read now,
+    ///   for up to `MenuBarRegions.unreadableGrace` seconds. While Mission Control is open
+    ///   many apps report no status items (seen on macOS 27.2.1: 13 of 20 owners), and such
+    ///   a reading would only count against them. The limit keeps a frontmost app that never
+    ///   answers Accessibility from stopping the scans.
     func statusItemFrames(
         runningPIDs: [pid_t], fullScan: Bool, alsoCheck: Set<pid_t> = [], menuBars: [CGRect]
     ) async -> [CGRect]? {
         await withCheckedContinuation { continuation in
             queue.async {
-                guard menuBars.allSatisfy({ Self.menuBar(at: $0) != nil }) else {
-                    continuation.resume(returning: nil)
-                    return
+                let now = ProcessInfo.processInfo.systemUptime
+                if menuBars.allSatisfy({ Self.menuBar(at: $0) != nil }) {
+                    self.menuBarsUnreadableSince = nil
+                } else {
+                    let since = self.menuBarsUnreadableSince ?? now
+                    self.menuBarsUnreadableSince = since
+                    if now - since < MenuBarRegions.unreadableGrace {
+                        continuation.resume(returning: nil)
+                        return
+                    }
                 }
                 let running = Set(runningPIDs)
                 self.statusItemOwners.keepOnly(running: running)
                 let targets = fullScan ? running : self.statusItemOwners.pids.union(alsoCheck).intersection(running)
                 for pid in targets {
-                    self.statusItemOwners.record(Self.extrasFrames(pid: pid), for: pid)
+                    self.statusItemOwners.record(Self.extrasFrames(pid: pid), for: pid, at: now)
                 }
                 continuation.resume(returning: self.statusItemOwners.allFrames)
             }
@@ -121,13 +132,14 @@ nonisolated final class MenuBarRegionReader: @unchecked Sendable {
 /// Right after Mission Control closes, some apps still report no status items although the
 /// menu bar can be read again (seen on macOS 27.2.1: 11 of 24 items left). Dropping them on
 /// the first empty reading left the right shape too short until the next full scan, a minute
-/// later. An owner that reads as empty keeps its last frames until it has done so
-/// `missesBeforeDropping` times in a row, which also ends items an app really removed.
+/// later. An owner that reads as empty keeps its last frames until it has had none for
+/// `emptyGrace` seconds, which also ends items an app really removed. Counted in time, not
+/// in scans, because launches and quits add scans in bursts.
 nonisolated struct StatusItemOwners: Sendable {
-    static let missesBeforeDropping = 3
+    static let emptyGrace: Double = 10
 
     private(set) var framesByPID: [pid_t: [CGRect]] = [:]
-    private var misses: [pid_t: Int] = [:]
+    private var lastSeen: [pid_t: Double] = [:]
 
     var pids: Set<pid_t> { Set(framesByPID.keys) }
     var allFrames: [CGRect] { framesByPID.values.flatMap { $0 } }
@@ -135,21 +147,17 @@ nonisolated struct StatusItemOwners: Sendable {
     /// Forgets processes that quit.
     mutating func keepOnly(running: Set<pid_t>) {
         framesByPID = framesByPID.filter { running.contains($0.key) }
-        misses = misses.filter { running.contains($0.key) }
+        lastSeen = lastSeen.filter { running.contains($0.key) }
     }
 
-    mutating func record(_ frames: [CGRect], for pid: pid_t) {
+    /// - Parameter now: Seconds on a monotonic clock.
+    mutating func record(_ frames: [CGRect], for pid: pid_t, at now: Double) {
         if !frames.isEmpty {
             framesByPID[pid] = frames
-            misses[pid] = nil
-        } else if framesByPID[pid] != nil {
-            let count = (misses[pid] ?? 0) + 1
-            if count >= Self.missesBeforeDropping {
-                framesByPID[pid] = nil
-                misses[pid] = nil
-            } else {
-                misses[pid] = count
-            }
+            lastSeen[pid] = now
+        } else if let seen = lastSeen[pid], now - seen >= Self.emptyGrace {
+            framesByPID[pid] = nil
+            lastSeen[pid] = nil
         }
     }
 }

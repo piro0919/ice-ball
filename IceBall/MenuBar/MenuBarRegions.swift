@@ -22,15 +22,23 @@ nonisolated struct MenuBarRegions: Equatable, Sendable {
         return extent > 0 ? extent : nil
     }
 
+    /// How long, in seconds, a menu bar that cannot be read is waited out with the last
+    /// measurements. Long enough for Mission Control to close and settle; short enough that
+    /// an app whose menus never read (not answering Accessibility) gets one shape, which
+    /// covers its menus whatever their width, instead of the last app's width.
+    static let unreadableGrace: Double = 15
+
     /// The extent to show for one display after reading its app menus.
     /// - Parameters:
     ///   - frames: nil when the menu bar could not be read (Mission Control covering it):
     ///     the last width stays, so Split does not turn into one shape until the next reading.
     ///   - keepingMissing: Whether a menu bar read as empty keeps the last width.
+    ///   - unreadableFor: Seconds the menu bar has been unreadable, this reading included.
     static func nextApplicationMenuExtent(
-        frames: [CGRect]?, on display: DisplayInfo, previous: CGFloat?, keepingMissing: Bool
+        frames: [CGRect]?, on display: DisplayInfo, previous: CGFloat?, keepingMissing: Bool,
+        unreadableFor: Double = 0
     ) -> CGFloat? {
-        guard let frames else { return previous }
+        guard let frames else { return unreadableFor < unreadableGrace ? previous : nil }
         return applicationMenuExtent(frames: frames, on: display) ?? (keepingMissing ? previous : nil)
     }
 

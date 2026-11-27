@@ -27,6 +27,8 @@ final class OverlayController {
     private var pointerMonitors: [Any] = []
     private var lastMenuCheck: CFTimeInterval = 0
     private var menuIsOpen = false
+    /// Per display: when its menu bar started reading as unreadable.
+    private var appMenuUnreadableSince: [CGDirectDisplayID: CFTimeInterval] = [:]
 
     /// Whether the system appearance is dark. Set by the app delegate; used for the fill only
     /// when the desktop picture under the bar is not available.
@@ -324,14 +326,25 @@ final class OverlayController {
     /// Right after an app switch the new app's menus often read as nothing for a moment
     /// (seen for about 0.2 s on macOS 27.2.1), which made Split fall back to one shape and
     /// back. With `keepingMissing`, a display that reads as nothing keeps its last width;
-    /// the last retry accepts nothing. A menu bar that cannot be read at all keeps it always.
+    /// the last retry accepts nothing. A menu bar that cannot be read at all keeps it for
+    /// `MenuBarRegions.unreadableGrace`.
     private func measureApplicationMenu(keepingMissing: Bool = false) async {
         var extents: [CGDirectDisplayID: CGFloat] = [:]
         for display in displayInfos() where display.hasMenuBar {
+            let id = display.displayID
             let frames = await regionReader.applicationMenuFrames(atMenuBarOf: display.bounds)
-            extents[display.displayID] = MenuBarRegions.nextApplicationMenuExtent(
-                frames: frames, on: display, previous: regions.applicationMenuExtents[display.displayID],
-                keepingMissing: keepingMissing)
+            let now = CACurrentMediaTime()
+            var unreadableFor: CFTimeInterval = 0
+            if frames == nil {
+                let since = appMenuUnreadableSince[id] ?? now
+                appMenuUnreadableSince[id] = since
+                unreadableFor = now - since
+            } else {
+                appMenuUnreadableSince[id] = nil
+            }
+            extents[id] = MenuBarRegions.nextApplicationMenuExtent(
+                frames: frames, on: display, previous: regions.applicationMenuExtents[id],
+                keepingMissing: keepingMissing, unreadableFor: unreadableFor)
         }
         log.debug("app menu extents: \(String(describing: extents), privacy: .public)")
         guard needsRegions, regions.applicationMenuExtents != extents else { return }
